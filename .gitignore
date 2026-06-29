@@ -1,6 +1,9 @@
+# Biến môi trường (chứa thông tin nhạy cảm - không đẩy lên)
+.env
+
 # Config DB (chứa thông tin nhạy cảm - không đẩy lên)
-backend/config/database.php
-backend/sms_config.php
+src/backend/config/database.php
+src/backend/config/sms_config.php
 
 # XAMPP / server files
 *.log

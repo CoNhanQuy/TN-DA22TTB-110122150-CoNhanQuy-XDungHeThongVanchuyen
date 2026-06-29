@@ -1,0 +1,532 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Be Vietnam Pro', 'Segoe UI', sans-serif;
+    background: #f0f4f8;
+    color: #1f2937;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Container ─────────────────────────────── */
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 24px 28px;
+}
+
+/* ── Header ────────────────────────────────── */
+.header {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+    color: white;
+    padding: 28px 32px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    box-shadow: 0 12px 32px rgba(37, 99, 235, 0.22);
+}
+
+.header h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    margin-bottom: 8px;
+}
+
+.header p {
+    opacity: 0.92;
+    line-height: 1.6;
+    font-size: 0.92rem;
+    max-width: 720px;
+}
+
+.user-meta {
+    margin-top: 12px;
+    font-size: 0.875rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    opacity: 0.95;
+}
+
+.logout-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.logout-btn:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+/* ── Tabs ──────────────────────────────────── */
+#mainTabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 0;
+    padding: 0 2px;
+}
+
+.tab-btn {
+    background: #e0e7ff;
+    color: #3730a3;
+    border: none;
+    padding: 11px 24px;
+    border-radius: 12px 12px 0 0;
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: 0.01em;
+}
+
+.tab-btn:hover {
+    background: #c7d2fe;
+}
+
+.tab-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.tab-section {
+    display: block;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* ── Layout 2 cột cân bằng ────────────────── */
+.layout {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 24px;
+    align-items: start;
+}
+
+/* Cột phải sticky khi scroll */
+.layout > div:last-child {
+    position: sticky;
+    top: 16px;
+}
+
+/* ── Card ──────────────────────────────────── */
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.07);
+    border: 1px solid #e9edf3;
+}
+
+.card h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+    color: #111827;
+}
+
+.card-desc {
+    color: #6b7280;
+    margin-bottom: 22px;
+    line-height: 1.6;
+    font-size: 0.875rem;
+}
+
+/* ── Section block (người gửi / nhận / hàng) ── */
+.section-block {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1d4ed8;
+    margin-bottom: 16px;
+    letter-spacing: 0.01em;
+}
+
+/* ── Form grid ─────────────────────────────── */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group.full {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.84rem;
+    letter-spacing: 0.01em;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    border: 1.5px solid #d1d5db;
+    border-radius: 10px;
+    padding: 10px 13px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: white;
+    color: #1f2937;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+.inline-note {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+/* ── Thanh toán (3 options — 1 hàng 2 cột + 1 full) ── */
+.payment-switch {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.payment-switch .payment-option:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
+.payment-option {
+    border: 1.5px solid #d1d5db;
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    background: #fff;
+}
+
+.payment-option:hover {
+    border-color: #93c5fd;
+    background: #f0f7ff;
+}
+
+.payment-option.active {
+    border-color: #2563eb;
+    background: #eff6ff;
+    box-shadow: 0 0 0 1px #2563eb;
+}
+
+.payment-option strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #111827;
+    font-size: 0.9rem;
+}
+
+.payment-option span {
+    font-size: 0.82rem;
+    color: #6b7280;
+    line-height: 1.45;
+}
+
+/* ── Summary box (cột phải) ────────────────── */
+.summary-box {
+    background: linear-gradient(160deg, #eff6ff 0%, #f0f4ff 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+.summary-box h3 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #1e40af;
+}
+
+.summary-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px dashed #cbd5e1;
+    font-size: 0.88rem;
+}
+
+.summary-line:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.summary-line.total {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    padding-top: 12px;
+}
+
+/* ── Payment panel ─────────────────────────── */
+.payment-panel {
+    border: 1px dashed #cbd5e1;
+    background: #fafafa;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.payment-panel h4 {
+    margin-bottom: 8px;
+    color: #111827;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.payment-panel p {
+    color: #6b7280;
+    line-height: 1.55;
+    font-size: 0.84rem;
+}
+
+.qr-box {
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background: white;
+    border: 1px solid #dbeafe;
+    color: #1d4ed8;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+/* ── Action row ────────────────────────────── */
+.action-row {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-submit,
+.btn-secondary {
+    border: none;
+    border-radius: 12px;
+    padding: 13px 20px;
+    font-size: 0.94rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.15s;
+    letter-spacing: 0.01em;
+}
+
+.btn-submit {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    flex: 1;
+}
+
+.btn-secondary {
+    background: #e5e7eb;
+    color: #374151;
+    min-width: 130px;
+}
+
+.btn-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-secondary:hover { background: #d1d5db; transform: translateY(-1px); }
+.btn-submit:active,
+.btn-secondary:active { transform: translateY(0); }
+
+/* ── Message ───────────────────────────────── */
+.message {
+    display: none;
+    padding: 13px 16px;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.message.success {
+    display: block;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.message.error {
+    display: block;
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+/* ── Bảng đơn hàng ─────────────────────────── */
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid #f0f2f7;
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+.orders-table th {
+    background: #f8fafc;
+    color: #6b7280;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.orders-table tbody tr:hover {
+    background: #fafcff;
+}
+
+/* ── Badges ────────────────────────────────── */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.status-warehouse {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.invoice-paid {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.invoice-unpaid {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* ── Utilities ─────────────────────────────── */
+.muted { color: #6b7280; }
+.small { font-size: 0.84rem; }
+
+/* ── Responsive ────────────────────────────── */
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    .layout > div:last-child {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .container { padding: 14px; }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+    }
+
+    .header h1 { font-size: 1.4rem; }
+
+    .form-grid,
+    .payment-switch {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-switch .payment-option:nth-child(3) {
+        grid-column: 1;
+    }
+
+    .action-row { flex-direction: column; }
+
+    .btn-submit,
+    .btn-secondary { width: 100%; }
+
+    #mainTabs { flex-wrap: wrap; }
+
+    .tab-btn {
+        border-radius: 10px;
+        padding: 9px 16px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ── QR Payment Box ─────────────────────────────── */
+.qr-box {
+    margin-top: 16px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 2px solid #38bdf8;
+    border-radius: 14px;
+    animation: fadeInUp .25s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
