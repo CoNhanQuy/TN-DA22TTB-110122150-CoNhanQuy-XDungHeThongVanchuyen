@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../models/DonHang.php';
-require_once __DIR__ . '/../models/KhachHang.php';
+require_once __DIR__ . '/../models/donhang.php';
+require_once __DIR__ . '/../models/khachhang.php';
 
 /**
  * DonHangController

@@ -3,7 +3,7 @@
  * Route group: /api/taixe/
  * Điều phối, tài xế, shipper — gọi GiaoHangController
  */
-require_once __DIR__ . '/../../controllers/GiaoHangController.php';
+require_once __DIR__ . '/../../controllers/giaohangcontroller.php';
 
 $ctrl   = new GiaoHangController($conn);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -69,8 +69,17 @@ switch ($action) {
         break;
 
     case 'update_shipment_status':
-        $result = $ctrl->updateShipmentStatus($userId, (int)($_POST['dot_id'] ?? 0), $_POST['trang_thai'] ?? '');
-        response($result['success'], null, $result['message']);
+        $dotId_req = (int)($_POST['dot_id'] ?? 0);
+        $ttMoi     = $_POST['trang_thai'] ?? '';
+        if ($userId <= 0) {
+            response(false, ['debug_user_id' => $userId, 'session_keys' => array_keys($_SESSION)], 'Phiên đăng nhập hết hạn. Vui lòng đăng xuất và đăng nhập lại.');
+        }
+        $result = $ctrl->updateShipmentStatus($userId, $dotId_req, $ttMoi);
+        if (!$result['success']) {
+            // Debug info giúp chẩn đoán
+            $result['data'] = ['user_id_used' => $userId, 'dot_id_used' => $dotId_req];
+        }
+        response($result['success'], $result['data'] ?? null, $result['message']);
         break;
 
     // ── Shipper ───────────────────────────────────────────────────
@@ -140,7 +149,7 @@ switch ($action) {
                 response(false, null, 'Không thể lưu file');
             }
 
-            $photoPath = '/DATN/uploads/delivery/' . $filename;
+            $photoPath = APP_BASE_URL . '/uploads/delivery/' . $filename;
             $result    = $ctrl->saveDeliveryPhoto($dhId, $userId, $photoPath);
             response($result['success'], ['photo_url' => $photoPath], $result['message']);
         }

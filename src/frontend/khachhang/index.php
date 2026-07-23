@@ -17,7 +17,10 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/DATN/frontend/assets/css/styles.css?v=4">
+    <link rel="stylesheet" href="<?php echo APP_BASE_URL; ?>/frontend/assets/css/styles.css?v=4">
+    <!-- Leaflet.js — bản đồ mã nguồn mở -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <style>
         /* ─── Layout ─── */
         .kh-container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
@@ -132,7 +135,7 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
         .od-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: flex-end; justify-content: center; }
         .od-overlay.open { display: flex; }
         @media (min-width: 640px) { .od-overlay { align-items: center; } }
-        .od-sheet { background: #fff; width: 100%; max-width: 600px; border-radius: 20px 20px 0 0; max-height: 92vh; overflow-y: auto; animation: slideUp .25s ease; }
+        .od-sheet { background: #fff; width: 100%; max-width: 640px; border-radius: 20px 20px 0 0; max-height: 92vh; overflow-y: auto; animation: slideUp .25s ease; }
         @media (min-width: 640px) { .od-sheet { border-radius: 16px; max-height: 88vh; } }
         @keyframes slideUp { from { transform: translateY(60px); opacity:0; } to { transform: translateY(0); opacity:1; } }
         .od-header { position: sticky; top: 0; background: #fff; z-index: 10; padding: 16px 20px 12px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
@@ -157,24 +160,68 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
         .od-timeline::before { content: ''; position: absolute; left: 8px; top: 8px; bottom: 0; width: 2px; background: #e5e7eb; }
         .od-tl-item { position: relative; margin-bottom: 20px; }
         .od-tl-item:last-child { margin-bottom: 0; }
-        .od-tl-dot { position: absolute; left: -24px; top: 4px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #e5e7eb; background: #fff; }
-        .od-tl-item.current .od-tl-dot { background: linear-gradient(135deg, #667eea, #764ba2); border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,.2); }
-        .od-tl-item.done .od-tl-dot { background: #22c55e; border-color: #22c55e; }
+        .od-tl-dot { position: absolute; left: -24px; top: 4px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #e5e7eb; background: #e5e7eb; transition: background .2s, border-color .2s; }
         .od-tl-time { font-size: 12px; color: #9ca3af; margin-bottom: 2px; }
-        .od-tl-status { font-size: 14px; font-weight: 700; color: #111827; }
-        .od-tl-item.current .od-tl-status { color: #667eea; }
-        .od-tl-note { font-size: 13px; color: #6b7280; margin-top: 2px; }
-        .od-tl-actor { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+        .od-tl-status { font-size: 14px; font-weight: 600; color: #374151; }
+        .od-tl-note { font-size: 13px; color: #6b7280; margin-top: 4px; line-height: 1.4; }
+        .od-tl-actor { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+        /* ─── Map GPS ─── */
+        .map-section {
+            margin-top: 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #f9fafb;
+        }
+        .map-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+        }
+        .map-header-title { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+        .map-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,.2); border-radius: 999px;
+            padding: 3px 10px; font-size: 12px; font-weight: 600;
+        }
+        .map-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; animation: blink 1.2s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+        #orderMap { height: 270px; width: 100%; display: block; }
+        .map-info-bar {
+            padding: 10px 16px;
+            background: #fff;
+            border-top: 1px solid #f3f4f6;
+            font-size: 13px; color: #374151;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .map-no-gps {
+            padding: 28px 16px;
+            text-align: center;
+            background: #fff;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        /* ─── Track map (trang tra cứu) ─── */
+        #trackMapSection {
+            margin-top: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+            background: #f9fafb;
+            display: none;
+        }
+        #trackMap { height: 250px; width: 100%; display: block; }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="nav-container">
-            <a href="../trangchu/index.php" class="logo">Vận Tải <span>Xanh</span></a>
+            <a href="<?php echo APP_BASE_URL; ?>/index.php" class="logo">Vận Tải <span>Xanh</span></a>
             <div class="nav-links">
                 <a href="#" onclick="document.querySelector('[data-tab=tab-track]').click(); return false;">Tra cứu</a>
                 <a href="#" onclick="document.querySelector('[data-tab=tab-orders]').click(); return false;">Đơn của tôi</a>
-                <a href="/DATN/backend/api/auth/logout.php" class="btn-login">Đăng xuất</a>
+                <a href="<?php echo APP_BASE_URL; ?>/backend/api/auth/logout.php" class="btn-login">Đăng xuất</a>
             </div>
         </div>
     </header>
@@ -210,6 +257,8 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
                 <div id="khTrackMsg" class="kh-success" style="display:none;"></div>
                 <div id="khTrackErr" class="kh-error" style="display:none;"></div>
                 <div id="khTrackStatus" style="margin-top:10px;"></div>
+                <!-- Bản đồ GPS real-time — chỉ hiện khi đơn đang vận chuyển -->
+                <div id="trackMapSection"></div>
             </div>
         </section>
 
@@ -327,7 +376,7 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
         </div>
     </div>
     <script>
-        const API_BASE = '/DATN/backend/api/index.php';
+        const API_BASE = '<?php echo APP_BASE_URL; ?>/backend/api/index.php';
 
         function formatCurrency(val) {
             const n = Number(val) || 0;
@@ -349,6 +398,59 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
             });
         });
 
+        const STATUS_LABEL = {
+            'cho_tiep_nhan'   : 'Chờ tiếp nhận',
+            'da_nhap_kho'     : 'Đã nhập kho',
+            'dang_van_chuyen' : 'Đang vận chuyển',
+            'da_den_kho_dich' : 'Đến kho đích',
+            'dang_giao_hang'  : 'Đang giao hàng',
+            'hoan_tat'        : 'Giao thành công',
+            'da_giao_hang'    : 'Đã giao hàng',
+            'da_huy'          : 'Đã hủy',
+            'tra_lai'         : 'Trả lại người gửi',
+            'cho_khoi_hanh'   : 'Chờ khởi hành',
+            'dang_di_chuyen'  : 'Đang di chuyển',
+            'da_den_kho_nhan' : 'Đến kho nhận',
+            'cho_lay_hang'    : 'Chờ lấy hàng',
+            'dang_giao'       : 'Đang đi giao',
+        };
+        const STATUS_ICON = {
+            'cho_tiep_nhan'   : '📝',
+            'da_nhap_kho'     : '📦',
+            'dang_van_chuyen' : '🚚',
+            'da_den_kho_dich' : '🏭',
+            'dang_giao_hang'  : '🛵',
+            'hoan_tat'        : '✅',
+            'da_giao_hang'    : '✅',
+            'da_huy'          : '❌',
+            'tra_lai'         : '↩️',
+            'cho_khoi_hanh'   : '⏳',
+            'dang_di_chuyen'  : '🚚',
+            'da_den_kho_nhan' : '🏭',
+            'cho_lay_hang'    : '📦',
+            'dang_giao'       : '🛵',
+        };
+        const STATUS_COLOR = {
+            'cho_tiep_nhan'   : '#6b7280',
+            'da_nhap_kho'     : '#2563eb',
+            'dang_van_chuyen' : '#7c3aed',
+            'da_den_kho_dich' : '#0891b2',
+            'dang_giao_hang'  : '#d97706',
+            'hoan_tat'        : '#16a34a',
+            'da_giao_hang'    : '#16a34a',
+            'da_huy'          : '#dc2626',
+            'tra_lai'         : '#9a3412',
+        };
+        const STEPS = ['cho_tiep_nhan','da_nhap_kho','dang_van_chuyen','da_den_kho_dich','dang_giao_hang','hoan_tat'];
+
+        function formatDateTime(str) {
+            if (!str) return '—';
+            const d = new Date(str.replace(' ', 'T'));
+            if (isNaN(d)) return str;
+            const pad = n => String(n).padStart(2, '0');
+            return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
         function escapeHtml(str) {
             return String(str ?? '')
                 .replace(/&/g, '&amp;')
@@ -364,7 +466,7 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
             if (s === 'hoan_tat') cls = 'green';
             else if (s === 'dang_van_chuyen') cls = 'blue';
             else if (s === 'da_giao_hang') cls = 'orange';
-            return `<span class="badge ${cls}">${escapeHtml(s)}</span>`;
+            return `<span class="badge ${cls}">${escapeHtml(STATUS_LABEL[s] || s)}</span>`;
         }
 
         async function trackOrder(code) {
@@ -372,10 +474,15 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
             const msgBox = document.getElementById('khTrackMsg');
             const errBox = document.getElementById('khTrackErr');
             const statusBox = document.getElementById('khTrackStatus');
+            const mapSection = document.getElementById('trackMapSection');
             resultWrap.style.display = 'block';
             msgBox.style.display = 'none';
             errBox.style.display = 'none';
             statusBox.innerHTML = '';
+            if (mapSection) { mapSection.style.display = 'none'; mapSection.innerHTML = ''; }
+            // Dọn dẹp track map cũ
+            if (_trackMapInterval) { clearInterval(_trackMapInterval); _trackMapInterval = null; }
+            if (_trackMap) { _trackMap.remove(); _trackMap = null; _trackMarker = null; }
             try {
                 const res = await fetch(`${API_BASE}?action=track&code=${encodeURIComponent(code)}`, { method: 'GET' });
                 const data = await res.json();
@@ -384,29 +491,37 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
                     errBox.style.display = 'block';
                     return;
                 }
-                const o = data.data || {};
-                msgBox.innerHTML = `<strong>Mã đơn: ${escapeHtml(o.code)}</strong><br>${escapeHtml(o.message || '')}`;
+                // API track trả về data.data = { order: {...}, timeline: [...] }
+                const payload = data.data || {};
+                const o = payload.order || payload;
+                const trangThai = o.trang_thai || o.trang_thai_don_hang || '';
+                const statusLabel = STATUS_LABEL[trangThai] || trangThai;
+                msgBox.innerHTML = `<strong>Mã đơn: ${escapeHtml(o.ma_don || code)}</strong><br>Trạng thái: ${escapeHtml(statusLabel)}`;
                 msgBox.style.display = 'block';
                 statusBox.innerHTML = `
                     <div style="background: #e5e7eb; border-radius: 10px; margin-top: 10px; overflow:hidden;">
                         <div style="width: ${Number(o.progress || 0)}%; background: linear-gradient(135deg, #667eea, #764ba2); padding: 8px; color: white; text-align: center;">
-                            ${escapeHtml(o.status || '')} - ${Number(o.progress || 0)}%
+                            ${escapeHtml(statusLabel)} - ${Number(o.progress || 0)}%
                         </div>
                     </div>
                     <div style="margin-top:10px;" class="kh-grid cols-2">
                         <div class="kh-card" style="border-radius:12px;">
-                            <div class="kh-field"><div class="label">Hàng hóa</div><div class="value">${escapeHtml(o.product || '')}</div></div>
-                            <div class="kh-field"><div class="label">Khối lượng</div><div class="value">${escapeHtml(o.weight || '')} kg</div></div>
-                            <div class="kh-field"><div class="label">Tổng phí</div><div class="value">${formatCurrency(o.fee)}</div></div>
-                            <div class="kh-field"><div class="label">Đã trả trước</div><div class="value">${formatCurrency(o.prepaid)}</div></div>
-                            <div class="kh-field"><div class="label">Còn lại (cần thu)</div><div class="value" style="color:#e11d48;font-weight:bold;">${formatCurrency(o.remaining)}</div></div>
+                            <div class="kh-field"><div class="label">Khối lượng</div><div class="value">${escapeHtml(String(o.tong_khoi_luong_kg || o.weight || '—'))} kg</div></div>
+                            <div class="kh-field"><div class="label">Phí vận chuyển</div><div class="value">${formatCurrency(o.phi_van_chuyen || o.fee)}</div></div>
+                            <div class="kh-field"><div class="label">Đã trả trước</div><div class="value">${formatCurrency(o.tien_tra_truoc || o.prepaid)}</div></div>
+                            <div class="kh-field"><div class="label">Còn lại (cần thu)</div><div class="value" style="color:#e11d48;font-weight:bold;">${formatCurrency(Math.max(0,(o.phi_van_chuyen||o.fee||0)-(o.tien_tra_truoc||o.prepaid||0)))}</div></div>
                         </div>
                         <div class="kh-card" style="border-radius:12px;">
-                            <div class="kh-field"><div class="label">Người nhận</div><div class="value">${escapeHtml(o.receiver || '')}</div></div>
-                            <div class="kh-field"><div class="label">SĐT</div><div class="value">${escapeHtml(o.phone || '')}</div></div>
-                            <div class="kh-field"><div class="label">Địa chỉ</div><div class="value">${escapeHtml(o.address || '')}</div></div>
+                            <div class="kh-field"><div class="label">Người nhận</div><div class="value">${escapeHtml((o.nguoi_nhan||{}).ho_ten || o.receiver || '—')}</div></div>
+                            <div class="kh-field"><div class="label">SĐT</div><div class="value">${escapeHtml((o.nguoi_nhan||{}).so_dien_thoai || o.phone || '—')}</div></div>
+                            <div class="kh-field"><div class="label">Địa chỉ</div><div class="value">${escapeHtml((o.nguoi_nhan||{}).dia_chi || o.address || '—')}</div></div>
                         </div>
                     </div>`;
+
+                // Hiển thị bản đồ nếu đơn đang vận chuyển
+                if (MAP_STATUSES.includes(trangThai)) {
+                    loadTrackMap(code);
+                }
             } catch (e) {
                 errBox.textContent = 'Lỗi khi tra cứu. Vui lòng thử lại.';
                 errBox.style.display = 'block';
@@ -635,22 +750,13 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
             }
         }
         document.getElementById('btnReloadOrders').addEventListener('click', loadMyOrders);
-        const STATUS_LABEL = {
-            'cho_tiep_nhan': 'Chờ tiếp nhận', 'da_nhap_kho': 'Đã nhập kho',
-            'dang_van_chuyen': 'Đang vận chuyển', 'da_den_kho_dich': 'Đến kho đích',
-            'dang_giao_hang': 'Đang giao hàng', 'hoan_tat': 'Giao thành công',
-            'da_giao_hang': 'Đã giao hàng', 'da_huy': 'Đã hủy', 'tra_lai': 'Trả lại',
-        };
-        const STATUS_ICON = {
-            'cho_tiep_nhan': '📝', 'da_nhap_kho': '📦', 'dang_van_chuyen': '🚚',
-            'da_den_kho_dich': '🏭', 'dang_giao_hang': '🛵', 'hoan_tat': '✅',
-            'da_giao_hang': '✅', 'da_huy': '❌', 'tra_lai': '↩️',
-        };
-        const STEPS = ['cho_tiep_nhan','da_nhap_kho','dang_van_chuyen','da_den_kho_dich','dang_giao_hang','hoan_tat'];
 
         function closeOrderDetailBtn() {
             document.getElementById('odOverlay').classList.remove('open');
             document.body.style.overflow = '';
+            // Dọn dẹp map và interval khi đóng modal
+            if (_orderMapInterval) { clearInterval(_orderMapInterval); _orderMapInterval = null; }
+            if (_orderMap) { _orderMap.remove(); _orderMap = null; _orderMarker = null; }
         }
         function closeOrderDetail(e) {
             if (e.target === document.getElementById('odOverlay')) closeOrderDetailBtn();
@@ -688,13 +794,15 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
                     </div>`;
                 }).join('');
                 const remaining = Math.max(0, (o.phi_van_chuyen||0) - (o.tien_tra_truoc||0));
+                // Ưu tiên dùng invoice_status từ hoa_don; fallback về tính toán remaining
+                const invoicePaid = o.invoice_status === 'da_thanh_toan' || trangThai === 'hoan_tat';
                 const ng = o.nguoi_nhan || {}; const gg = o.nguoi_gui || {};
                 const infoHtml = `
                     <div class="od-info">
                         <div class="od-info-box"><div class="lbl">Người gửi</div><div class="val">${escapeHtml(gg.ho_ten || '—')}</div><div style="font-size:12px;color:#6b7280;">${escapeHtml(gg.so_dien_thoai || '')}</div></div>
                         <div class="od-info-box"><div class="lbl">Người nhận</div><div class="val">${escapeHtml(ng.ho_ten || '—')}</div><div style="font-size:12px;color:#6b7280;">${escapeHtml(ng.so_dien_thoai || '')}</div><div style="font-size:12px;color:#6b7280;">${escapeHtml(ng.dia_chi || '')}</div></div>
                         <div class="od-info-box"><div class="lbl">Khối lượng</div><div class="val">${escapeHtml(String(o.tong_khoi_luong_kg || o.khoi_luong_kg || '—'))} kg</div></div>
-                        <div class="od-info-box"><div class="lbl">Phí vận chuyển</div><div class="val">${formatCurrency(o.phi_van_chuyen)}</div>${remaining > 0 ? `<div style="font-size:12px;color:#e11d48;">Còn thu: ${formatCurrency(remaining)}</div>` : '<div style="font-size:12px;color:#22c55e;">Đã thanh toán đủ</div>'}</div>
+                        <div class="od-info-box"><div class="lbl">Phí vận chuyển</div><div class="val">${formatCurrency(o.phi_van_chuyen)}</div>${invoicePaid ? '<div style="font-size:12px;color:#22c55e;">✓ Đã thanh toán đủ</div>' : (remaining > 0 ? `<div style="font-size:12px;color:#e11d48;">Còn thu: ${formatCurrency(remaining)}</div>` : '<div style="font-size:12px;color:#22c55e;">✓ Đã thanh toán đủ</div>')}</div>
                         ${o.chi_nhanh_gui ? `<div class="od-info-box"><div class="lbl">Chi nhánh gửi</div><div class="val" style="font-size:13px;">${escapeHtml(o.chi_nhanh_gui)}</div></div>` : ''}
                         ${o.chi_nhanh_nhan ? `<div class="od-info-box"><div class="lbl">Chi nhánh nhận</div><div class="val" style="font-size:13px;">${escapeHtml(o.chi_nhanh_nhan)}</div></div>` : ''}
                     </div>`;
@@ -702,13 +810,22 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
                 const tlHtml = tlReversed.length === 0
                     ? `<div class="kh-muted">Chưa có lịch sử cập nhật.</div>`
                     : tlReversed.map((item, i) => {
-                        const cls = i === 0 ? 'current' : 'done';
+                        const isCurrent = (i === 0);
+                        const isCancel2 = item.status === 'da_huy' || item.status === 'tra_lai';
                         const label = STATUS_LABEL[item.status] || item.status;
                         const icon  = STATUS_ICON[item.status]  || '•';
-                        return `<div class="od-tl-item ${cls}">
-                            <div class="od-tl-dot"></div>
-                            <div class="od-tl-time">${escapeHtml(item.time || '')}</div>
-                            <div class="od-tl-status">${icon} ${escapeHtml(label)}</div>
+                        const color = STATUS_COLOR[item.status] || '#667eea';
+                        const dotStyle = isCurrent
+                            ? `background:${color};border-color:${color};box-shadow:0 0 0 3px ${color}33;`
+                            : isCancel2 ? 'background:#dc2626;border-color:#dc2626;'
+                            : 'background:#22c55e;border-color:#22c55e;';
+                        const statusStyle = isCurrent
+                            ? `color:${color};font-weight:700;`
+                            : isCancel2 ? 'color:#dc2626;' : 'color:#374151;';
+                        return `<div class="od-tl-item ${isCurrent ? 'current' : 'done'}">
+                            <div class="od-tl-dot" style="${dotStyle}"></div>
+                            <div class="od-tl-time">${escapeHtml(formatDateTime(item.time))}</div>
+                            <div class="od-tl-status" style="${statusStyle}">${icon} ${escapeHtml(label)}</div>
                             ${item.note  ? `<div class="od-tl-note">${escapeHtml(item.note)}</div>` : ''}
                             ${item.actor ? `<div class="od-tl-actor">👤 ${escapeHtml(item.actor)}</div>` : ''}
                         </div>`;
@@ -724,14 +841,270 @@ $hoTen = $_SESSION['ho_ten'] ?? 'Khách hàng';
                     </div>
                     <div class="od-steps">${stepsHtml}</div>
                     ${infoHtml}
-                    <div style="margin-top:4px;">
+                    ${MAP_STATUSES.includes(trangThai) ? `<div class="map-section" id="orderMapSection"><div class="map-no-gps">⏳ Đang tải bản đồ...</div></div>` : ''}
+                    <div style="margin-top:16px;">
                         <div style="font-weight:700; font-size:14px; margin-bottom:14px; color:#374151;">🕐 Lịch sử vận chuyển</div>
                         <div class="od-timeline">${tlHtml}</div>
                     </div>`;
+
+                // Tải bản đồ nếu đơn đang vận chuyển
+                if (MAP_STATUSES.includes(trangThai)) {
+                    loadOrderMap(madon);
+                    // Auto-refresh mỗi 20 giây
+                    if (_orderMapInterval) clearInterval(_orderMapInterval);
+                    _orderMapInterval = setInterval(() => updateOrderMap(madon), 20000);
+                }
+
             } catch (err) {
                 body.innerHTML = `<div class="kh-error">Lỗi khi tải chi tiết. Vui lòng thử lại.</div>`;
             }
         }
+        // ══════════════════════════════════════════════════════
+        //  GPS MAP — Hiển thị vị trí tài xế/shipper theo đơn hàng
+        // ══════════════════════════════════════════════════════
+
+        let _orderMap = null;       // Leaflet map instance trong modal
+        let _orderMarker = null;    // Marker tài xế/shipper trong modal
+        let _orderMapInterval = null;
+
+        let _trackMap = null;       // Leaflet map instance trên trang tra cứu
+        let _trackMarker = null;
+        let _trackMapInterval = null;
+
+        const MAP_STATUSES = ['dang_van_chuyen', 'dang_giao_hang', 'da_den_kho_dich'];
+
+        /** Đảm bảo thư viện Leaflet đã sẵn sàng */
+        async function ensureLeaflet() {
+            if (typeof L !== 'undefined') return true;
+            return new Promise((resolve) => {
+                if (!document.querySelector('link[href*="leaflet"]')) {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+                    document.head.appendChild(link);
+                }
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+                script.onload = () => resolve(typeof L !== 'undefined');
+                script.onerror = () => {
+                    const fallback = document.createElement('script');
+                    fallback.src = 'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+                    fallback.onload = () => resolve(typeof L !== 'undefined');
+                    fallback.onerror = () => resolve(false);
+                    document.head.appendChild(fallback);
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        /** Khởi tạo hoặc cập nhật bản đồ trong modal chi tiết đơn */
+        async function loadOrderMap(maDon) {
+            const mapSection = document.getElementById('orderMapSection');
+            if (!mapSection) return;
+
+            try {
+                const res  = await fetch(`${API_BASE}?action=track_location&ma_don=${encodeURIComponent(maDon)}`);
+                const data = await res.json();
+
+                if (!data.success || !data.data) {
+                    mapSection.innerHTML = `
+                        <div class="map-header">
+                            <div class="map-header-title">📍 Vị trí vận chuyển</div>
+                        </div>
+                        <div class="map-no-gps">🔍 Chưa có dữ liệu GPS cho đơn này.<br><small>Tài xế/Shipper chưa bật chia sẻ vị trí hoặc đơn chưa đến giai đoạn vận chuyển.</small></div>`;
+                    return;
+                }
+
+                const loc = data.data;
+                const lat = parseFloat(loc.vi_do);
+                const lng = parseFloat(loc.kinh_do);
+
+                if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+                    mapSection.innerHTML = `
+                        <div class="map-header">
+                            <div class="map-header-title">📍 Vị trí vận chuyển</div>
+                        </div>
+                        <div class="map-no-gps">🔍 Chưa có tọa độ GPS hợp lệ cho đơn này.<br><small>Vui lòng chờ tài xế/shipper cập nhật vị trí.</small></div>`;
+                    return;
+                }
+
+                const isShipper = loc.loai === 'shipper';
+                const label = isShipper
+                    ? `🛵 Shipper: ${loc.ten_nguoi || 'Đang giao'}`
+                    : `🚚 Tài xế: ${loc.ten_nguoi || ''}${loc.bien_so ? ' | ' + loc.bien_so : ''}`;
+
+                // Header
+                mapSection.innerHTML = `
+                    <div class="map-header">
+                        <div class="map-header-title">${isShipper ? '🛵' : '🚚'} Vị trí ${isShipper ? 'shipper' : 'tài xế'} theo thời gian thực</div>
+                        <div class="map-badge"><span class="dot"></span>LIVE</div>
+                    </div>
+                    <div id="orderMap"></div>
+                    <div class="map-info-bar">
+                        <span style="font-weight:600;">${label}</span>
+                        <span id="mapLastUpdate" style="color:#9ca3af; font-size:12px; margin-left:auto;">Cập nhật: ${loc.thoi_gian_ghi_nhan || '—'}</span>
+                    </div>`;
+
+                const isLeafletReady = await ensureLeaflet();
+                if (!isLeafletReady || typeof L === 'undefined') {
+                    const orderMapEl = document.getElementById('orderMap');
+                    if (orderMapEl) orderMapEl.innerHTML = `<div class="map-no-gps">⚠️ Không thể tải thư viện bản đồ. Vui lòng kiểm tra kết nối mạng.</div>`;
+                    return;
+                }
+
+                // Khởi tạo map Leaflet
+                if (_orderMap) { 
+                    try { _orderMap.remove(); } catch(err) {} 
+                    _orderMap = null; 
+                    _orderMarker = null; 
+                }
+
+                // Đợi DOM render xong
+                await new Promise(r => setTimeout(r, 50));
+
+                _orderMap = L.map('orderMap', { zoomControl: true, attributionControl: false }).setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap',
+                    maxZoom: 19
+                }).addTo(_orderMap);
+
+                const iconHtml = isShipper
+                    ? `<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);">🛵</div>`
+                    : `<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);">🚚</div>`;
+
+                const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [38,38], iconAnchor: [19,19] });
+                _orderMarker = L.marker([lat, lng], { icon: customIcon })
+                    .addTo(_orderMap)
+                    .bindPopup(`<strong>${label}</strong><br><small>Cập nhật: ${loc.thoi_gian_ghi_nhan || '—'}</small>`, { offset: [0, -14] })
+                    .openPopup();
+
+                // Thêm attribution nhỏ góc phải
+                L.control.attribution({ prefix: '© OpenStreetMap' }).addTo(_orderMap);
+
+                setTimeout(() => {
+                    if (_orderMap) _orderMap.invalidateSize();
+                }, 150);
+
+            } catch (e) {
+                console.error('Lỗi khi tải bản đồ (loadOrderMap):', e);
+                const mapSection2 = document.getElementById('orderMapSection');
+                if (mapSection2) mapSection2.innerHTML = `<div class="map-no-gps">⚠️ Không thể tải bản đồ. Vui lòng thử lại.</div>`;
+            }
+        }
+
+        /** Cập nhật lại marker trên modal map (gọi theo interval) */
+        async function updateOrderMap(maDon) {
+            if (!_orderMap || !_orderMarker) return;
+            try {
+                const res  = await fetch(`${API_BASE}?action=track_location&ma_don=${encodeURIComponent(maDon)}`);
+                const data = await res.json();
+                if (!data.success || !data.data) return;
+                const loc = data.data;
+                const lat = parseFloat(loc.vi_do);
+                const lng = parseFloat(loc.kinh_do);
+                if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) return;
+                _orderMarker.setLatLng([lat, lng]);
+                const lastUpEl = document.getElementById('mapLastUpdate');
+                if (lastUpEl) lastUpEl.textContent = 'Cập nhật: ' + (loc.thoi_gian_ghi_nhan || '—');
+            } catch { /* bỏ qua nếu lỗi */ }
+        }
+
+        /** Tải bản đồ trên trang tra cứu (trackOrder) */
+        async function loadTrackMap(maDon) {
+            const section = document.getElementById('trackMapSection');
+            if (!section) return;
+            section.style.display = 'block';
+            section.innerHTML = `
+                <div class="map-header">
+                    <div class="map-header-title">📍 Vị trí vận chuyển theo thời gian thực</div>
+                    <div class="map-badge"><span class="dot"></span>LIVE</div>
+                </div>
+                <div id="trackMap"></div>
+                <div class="map-info-bar" id="trackMapInfo">Đang tải vị trí...</div>`;
+
+            if (_trackMapInterval) clearInterval(_trackMapInterval);
+            if (_trackMap) { 
+                try { _trackMap.remove(); } catch(err) {} 
+                _trackMap = null; 
+                _trackMarker = null; 
+            }
+
+            try {
+                const res  = await fetch(`${API_BASE}?action=track_location&ma_don=${encodeURIComponent(maDon)}`);
+                const data = await res.json();
+
+                if (!data.success || !data.data) {
+                    section.innerHTML = `
+                        <div class="map-header"><div class="map-header-title">📍 Vị trí vận chuyển</div></div>
+                        <div class="map-no-gps">🔍 Chưa có GPS — đơn chưa được vận chuyển hoặc tài xế/shipper chưa bật chia sẻ vị trí.</div>`;
+                    return;
+                }
+
+                const loc = data.data;
+                const lat = parseFloat(loc.vi_do);
+                const lng = parseFloat(loc.kinh_do);
+
+                if (isNaN(lat) || isNaN(lng) || (lat === 0 && lng === 0)) {
+                    section.innerHTML = `
+                        <div class="map-header"><div class="map-header-title">📍 Vị trí vận chuyển</div></div>
+                        <div class="map-no-gps">🔍 Chưa có tọa độ GPS hợp lệ cho đơn này.</div>`;
+                    return;
+                }
+
+                const isShipper = loc.loai === 'shipper';
+                const label = isShipper
+                    ? `🛵 Shipper: ${loc.ten_nguoi || 'Đang giao'}`
+                    : `🚚 Tài xế: ${loc.ten_nguoi || ''}${loc.bien_so ? ' | ' + loc.bien_so : ''}`;
+
+                const isLeafletReady = await ensureLeaflet();
+                if (!isLeafletReady || typeof L === 'undefined') {
+                    section.innerHTML = `<div class="map-no-gps">⚠️ Không thể tải thư viện bản đồ. Vui lòng kiểm tra kết nối mạng.</div>`;
+                    return;
+                }
+
+                await new Promise(r => setTimeout(r, 50));
+
+                _trackMap = L.map('trackMap', { zoomControl: true, attributionControl: false }).setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(_trackMap);
+
+                const iconHtml = isShipper
+                    ? `<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);">🛵</div>`
+                    : `<div style="background:linear-gradient(135deg,#667eea,#764ba2);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);">🚚</div>`;
+                const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [36,36], iconAnchor: [18,18] });
+                _trackMarker = L.marker([lat, lng], { icon: customIcon })
+                    .addTo(_trackMap)
+                    .bindPopup(`<strong>${label}</strong><br><small>Cập nhật: ${loc.thoi_gian_ghi_nhan || '—'}</small>`, { offset: [0,-14] })
+                    .openPopup();
+
+                const infoEl = document.getElementById('trackMapInfo');
+                if (infoEl) infoEl.innerHTML = `<span style="font-weight:600;">${label}</span><span style="color:#9ca3af;font-size:12px;margin-left:auto;">Cập nhật: ${loc.thoi_gian_ghi_nhan || '—'}</span>`;
+
+                setTimeout(() => {
+                    if (_trackMap) _trackMap.invalidateSize();
+                }, 150);
+
+                // Auto-refresh mỗi 20 giây
+                _trackMapInterval = setInterval(async () => {
+                    try {
+                        const r2   = await fetch(`${API_BASE}?action=track_location&ma_don=${encodeURIComponent(maDon)}`);
+                        const d2   = await r2.json();
+                        if (!d2.success || !d2.data) return;
+                        const ll = d2.data;
+                        const lat2 = parseFloat(ll.vi_do);
+                        const lng2 = parseFloat(ll.kinh_do);
+                        if (isNaN(lat2) || isNaN(lng2) || (lat2 === 0 && lng2 === 0)) return;
+                        _trackMarker && _trackMarker.setLatLng([lat2, lng2]);
+                        const inf = document.getElementById('trackMapInfo');
+                        if (inf) inf.innerHTML = `<span style="font-weight:600;">${label}</span><span style="color:#9ca3af;font-size:12px;margin-left:auto;">Cập nhật: ${ll.thoi_gian_ghi_nhan || '—'}</span>`;
+                    } catch { /* ignore */ }
+                }, 20000);
+
+            } catch (err) {
+                console.error('Lỗi khi tải bản đồ (loadTrackMap):', err);
+                section.innerHTML = `<div class="map-no-gps">⚠️ Không thể tải bản đồ GPS.</div>`;
+            }
+        }
+
     </script>
 </body>
 </html>

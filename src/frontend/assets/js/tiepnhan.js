@@ -1,16 +1,23 @@
-const API_URL = (window.API_BASE || '/DATN') + '/backend/api/index.php';
+const API_URL = getApiBase() + '/backend/api/index.php';
 const STATUS_LABELS = {
     cho_tiep_nhan: 'Chờ tiếp nhận',
     da_nhap_kho: 'Đã nhập kho',
     dang_van_chuyen: 'Đang vận chuyển',
+    da_den_kho_dich: 'Đã đến kho đích',
+    dang_giao_hang: 'Đang giao hàng',
     da_giao_hang: 'Đã giao hàng',
     hoan_tat: 'Hoàn tất',
-    da_huy: 'Đã hủy'
+    da_huy: 'Đã hủy',
+    dang_xu_ly: 'Đang xử lý',
+    dang_phat: 'Đang phát',
+    tra_lai: 'Trả lại'
 };
 
 const orderForm = document.getElementById('orderForm');
 const formMessage = document.getElementById('formMessage');
 const weightInput = document.getElementById('weight');
+const distanceKmInput = document.getElementById('distanceKm');
+const goodsTypeSelect = document.getElementById('goodsTypeSelect');
 const paymentMethodSelect = document.getElementById('paymentMethod');
 const paymentFlowInput = document.getElementById('paymentFlow');
 const paymentOptions = document.querySelectorAll('.payment-option');
@@ -23,9 +30,71 @@ const ordersTableBody = document.getElementById('ordersTableBody');
 const orderSearchInput = document.getElementById('orderSearchInput');
 const orderStatusFilter = document.getElementById('orderStatusFilter');
 
+const receiverBranchSelect = document.getElementById('receiverBranchSelect');
+const dimLengthInput = document.getElementById('dimLength');
+const dimWidthInput = document.getElementById('dimWidth');
+const dimHeightInput = document.getElementById('dimHeight');
+const calcVolumeEl = document.getElementById('calcVolume');
+const calcVolWeightEl = document.getElementById('calcVolWeight');
+const chargedWeightDisplayEl = document.getElementById('chargedWeightDisplay');
+const bulkyBadgeEl = document.getElementById('bulkyBadge');
+
 let estimatedFee = null;
 let sessionOrders = [];
 let allOrders = [];
+
+async function loadBranches() {
+    if (!receiverBranchSelect) return;
+    try {
+        const res = await apiFetch(`${API_URL}?action=branches`, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+            const currentVal = receiverBranchSelect.value;
+            receiverBranchSelect.innerHTML = '<option value="">-- Chọn chi nhánh đến --</option>';
+            data.data.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.id;
+                opt.textContent = item.ten_chi_nhanh || `Chi nhánh ${item.id}`;
+                receiverBranchSelect.appendChild(opt);
+            });
+            if (currentVal) receiverBranchSelect.value = currentVal;
+        }
+    } catch (err) {
+        console.error('Lỗi tải danh sách chi nhánh:', err);
+    }
+}
+
+function getDimensionsAndWeight() {
+    const actualWeight = parseFloat(weightInput?.value || '0');
+    const length = parseFloat(dimLengthInput?.value || '0');
+    const width = parseFloat(dimWidthInput?.value || '0');
+    const height = parseFloat(dimHeightInput?.value || '0');
+
+    const volume = (length > 0 && width > 0 && height > 0) ? (length * width * height) : 0;
+    const volWeight = volume > 0 ? (volume / 6000) : 0;
+    const chargedWeight = Math.max(actualWeight, volWeight);
+
+    if (calcVolumeEl) calcVolumeEl.textContent = volume.toLocaleString('vi-VN');
+    if (calcVolWeightEl) calcVolWeightEl.textContent = volWeight > 0 ? volWeight.toFixed(2) : '0';
+    if (chargedWeightDisplayEl) chargedWeightDisplayEl.textContent = `${chargedWeight > 0 ? chargedWeight.toFixed(2) : '0'} kg`;
+
+    // Ngưỡng phân loại Hàng cồng kềnh: bất kỳ chiều nào > 50cm hoặc Thể tích > 60.000 cm³
+    const isBulky = (length > 50 || width > 50 || height > 50 || volume > 60000);
+    if (bulkyBadgeEl) {
+        bulkyBadgeEl.style.display = isBulky ? 'inline-block' : 'none';
+    }
+
+    if (isBulky && goodsTypeSelect) {
+        const bulkyOpt = Array.from(goodsTypeSelect.options).find(opt =>
+            opt.value === '3' || opt.textContent.toLowerCase().includes('cồng kềnh')
+        );
+        if (bulkyOpt && goodsTypeSelect.value !== bulkyOpt.value) {
+            goodsTypeSelect.value = bulkyOpt.value;
+        }
+    }
+
+    return { actualWeight, length, width, height, volume, volWeight, chargedWeight, isBulky };
+}
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -68,9 +137,9 @@ function clearMessage() {
 }
 
 function statusBadgeClass(status) {
-    if (status === 'da_nhap_kho' || status === 'dang_van_chuyen') return 'status-warehouse';
+    if (status === 'da_nhap_kho' || status === 'dang_van_chuyen' || status === 'da_den_kho_dich' || status === 'dang_giao_hang' || status === 'dang_xu_ly' || status === 'dang_phat') return 'status-warehouse';
     if (status === 'hoan_tat' || status === 'da_giao_hang') return 'invoice-paid';
-    if (status === 'da_huy') return 'invoice-unpaid';
+    if (status === 'da_huy' || status === 'huy' || status === 'tra_lai') return 'invoice-unpaid';
     return 'invoice-unpaid';
 }
 
@@ -84,6 +153,7 @@ async function loadGoodsTypes() {
             return;
         }
 
+        // Populate bảng quản lý loại hàng
         goodsTypesTableBody.innerHTML = data.data.map(item => `
             <tr>
                 <td>#${escapeHtml(item.id)}</td>
@@ -99,6 +169,21 @@ async function loadGoodsTypes() {
                 </td>
             </tr>
         `).join('');
+
+        // Populate dropdown Loại hàng trong form tạo đơn
+        if (goodsTypeSelect) {
+            const currentVal = goodsTypeSelect.value;
+            goodsTypeSelect.innerHTML = '<option value="">-- Chọn loại hàng --</option>';
+            data.data
+                .filter(item => Number(item.trang_thai) === 1)
+                .forEach(item => {
+                    const opt = document.createElement('option');
+                    opt.value = item.id;
+                    opt.textContent = item.ten_danh_muc;
+                    goodsTypeSelect.appendChild(opt);
+                });
+            if (currentVal) goodsTypeSelect.value = currentVal;
+        }
     } catch (error) {
         goodsTypesTableBody.innerHTML = `<tr><td colspan="5" class="muted" style="text-align:center;">Lỗi tải danh mục loại hàng</td></tr>`;
     }
@@ -236,11 +321,11 @@ async function cancelOrder(id) {
 }
 
 function updateSummary() {
-    const weight = parseFloat(weightInput.value || '0');
+    const { chargedWeight } = getDimensionsAndWeight();
     const paymentFlow = paymentFlowInput.value;
     const paymentMethod = paymentMethodSelect.value;
 
-    document.getElementById('summaryWeight').textContent = `${weight > 0 ? weight : 0} kg`;
+    document.getElementById('summaryWeight').textContent = `${chargedWeight > 0 ? chargedWeight.toFixed(2) : 0} kg`;
     document.getElementById('summaryFlow').textContent = paymentFlow === 'prepaid' ? 'Trả trước toàn bộ' : (paymentFlow === 'partial' ? 'Trả trước một phần' : 'Người nhận trả tiền');
     document.getElementById('summaryMethod').textContent = paymentMethod === 'qr_code' ? 'Mã QR' : 'Tiền mặt';
     document.getElementById('summaryFee').textContent = formatCurrency(estimatedFee);
@@ -263,7 +348,7 @@ function updateSummary() {
         qrBox.innerHTML = `
             <div style="display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap;">
                 <div style="text-align:center; flex-shrink:0;">
-                    <img src="/DATN/frontend/assets/images/qr_payment.png"
+                    <img src="${getApiBase()}/frontend/assets/images/qr_payment.png"
                          alt="QR Thanh toán"
                          style="width:180px; height:auto; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,.15);"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
@@ -293,15 +378,19 @@ function updateSummary() {
 }
 
 async function fetchQuote() {
-    const weight = parseFloat(weightInput.value || '0');
-    if (!weight || weight <= 0) {
+    const { chargedWeight } = getDimensionsAndWeight();
+    const km = parseFloat(distanceKmInput?.value || '0');
+    const loaiHangId = parseInt(goodsTypeSelect?.value || '0', 10);
+
+    if (!chargedWeight || chargedWeight <= 0) {
         estimatedFee = null;
         updateSummary();
         return;
     }
 
     try {
-        const response = await apiFetch(`${API_URL}?action=quote&weight=${encodeURIComponent(weight)}`, { credentials: 'same-origin' });
+        const url = `${API_URL}?action=quote&weight=${encodeURIComponent(chargedWeight)}&km=${encodeURIComponent(km)}&loai_hang_id=${encodeURIComponent(loaiHangId)}`;
+        const response = await apiFetch(url, { credentials: 'same-origin' });
         const result = await response.json();
         estimatedFee = result.success && result.data ? result.data.estimated_fee : null;
     } catch (error) {
@@ -342,12 +431,12 @@ function setPaymentFlow(flow) {
 
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.textContent = flow === 'prepaid' ? 'Thu toàn bộ tiền / xác nhận nhập kho' : (flow === 'partial' ? 'Thu tiền một phần / xác nhận nhập kho' : 'Xác nhận nhập kho');
-    
+
     const partialGroup = document.getElementById('partialPaymentGroup');
     if (partialGroup) {
         partialGroup.style.display = flow === 'partial' ? 'block' : 'none';
     }
-    
+
     updateSummary();
 }
 
@@ -373,9 +462,18 @@ document.addEventListener('DOMContentLoaded', function () {
     tabBtns.forEach(btn => btn.addEventListener('click', () => showTab(btn.dataset.tab)));
     showTab(document.querySelector('.tab-btn.active')?.dataset.tab || 'input');
 
+    // Load danh mục loại hàng & danh sách chi nhánh
+    loadGoodsTypes();
+    loadBranches();
+
     paymentOptions.forEach(option => option.addEventListener('click', () => setPaymentFlow(option.dataset.flow)));
     paymentMethodSelect.addEventListener('change', updateSummary);
-    weightInput.addEventListener('input', fetchQuote);
+    weightInput.addEventListener('input', () => { getDimensionsAndWeight(); fetchQuote(); });
+    dimLengthInput?.addEventListener('input', () => { getDimensionsAndWeight(); fetchQuote(); });
+    dimWidthInput?.addEventListener('input', () => { getDimensionsAndWeight(); fetchQuote(); });
+    dimHeightInput?.addEventListener('input', () => { getDimensionsAndWeight(); fetchQuote(); });
+    distanceKmInput?.addEventListener('input', fetchQuote);
+    goodsTypeSelect?.addEventListener('change', fetchQuote);
     orderSearchInput.addEventListener('input', renderOrdersTable);
     orderStatusFilter.addEventListener('change', renderOrdersTable);
 
@@ -409,6 +507,7 @@ document.addEventListener('DOMContentLoaded', function () {
         estimatedFee = null;
         clearMessage();
         setPaymentFlow('prepaid');
+        getDimensionsAndWeight();
         updateSummary();
     });
 
@@ -416,9 +515,9 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         clearMessage();
 
-        const weight = parseFloat(weightInput.value || '0');
-        if (!weight || weight <= 0) {
-            showMessage('error', 'Khối lượng không hợp lệ.');
+        const { chargedWeight, length, width, height } = getDimensionsAndWeight();
+        if (!chargedWeight || chargedWeight <= 0) {
+            showMessage('error', 'Khối lượng tính cước không hợp lệ.');
             return;
         }
 
@@ -440,8 +539,14 @@ document.addEventListener('DOMContentLoaded', function () {
         payload.append('receiver_email', document.getElementById('receiverEmail').value.trim());
         payload.append('receiver_cccd', document.getElementById('receiverCCCD').value.trim());
         payload.append('receiver_address', document.getElementById('receiverAddress').value.trim());
+        payload.append('chi_nhanh_nhan_id', parseInt(receiverBranchSelect?.value || '0', 10));
         payload.append('ten_hang_hoa', document.getElementById('productName').value.trim());
-        payload.append('khoi_luong_kg', weight);
+        payload.append('khoi_luong_kg', chargedWeight);
+        payload.append('chieu_dai_cm', length);
+        payload.append('chieu_rong_cm', width);
+        payload.append('chieu_cao_cm', height);
+        payload.append('so_km', parseFloat(distanceKmInput?.value || '0'));
+        payload.append('loai_hang_id', parseInt(goodsTypeSelect?.value || '0', 10));
         payload.append('phi_van_chuyen', estimatedFee);
         payload.append('phuong_thuc_thanh_toan', paymentMethodSelect.value);
         payload.append('kieu_thanh_toan', paymentFlowInput.value);
@@ -530,8 +635,8 @@ async function printPhieuById(id) {
         tempQr.innerHTML = '';
 
         // Đường dẫn QR cho shipper quét
-        const qrUrl = `${window.location.origin}/DATN/frontend/giaohang/?order=${encodeURIComponent(order.ma_don_hang)}`;
-        
+        const qrUrl = `${window.location.origin}${getApiBase()}/frontend/giaohang/?order=${encodeURIComponent(order.ma_don_hang)}`;
+
         new QRCode(tempQr, {
             text: qrUrl,
             width: 150,
@@ -551,7 +656,7 @@ async function printPhieuById(id) {
                 return;
             }
 
-            const paymentStatusHtml = order.invoice_status === 'da_thanh_toan' 
+            const paymentStatusHtml = order.invoice_status === 'da_thanh_toan'
                 ? '<span style="color:green; font-weight:bold;">ĐÃ THANH TOÁN</span>'
                 : '<span style="color:red; font-weight:bold;">CHƯA THANH TOÁN</span>';
 
@@ -747,7 +852,7 @@ async function printPhieuById(id) {
                         <div style="margin-top: 16px; padding: 14px; border: 2px dashed #3b82f6; border-radius: 8px; background: #eff6ff;">
                             <div style="font-weight: bold; font-size: 13px; margin-bottom: 10px; color: #1e40af;">💳 QR THANH TOÁN CƯỚC VẬN CHUYỂN (Người nhận quét)</div>
                             <div style="display: flex; align-items: center; gap: 16px;">
-                                <img src="${window.location.origin}/DATN/frontend/assets/images/qr_payment.png"
+                                <img src="${window.location.origin}${getApiBase()}/frontend/assets/images/qr_payment.png"
                                      alt="QR Thanh toán cước" style="width:120px; height:auto; border-radius:8px; border:2px solid #3b82f6;"
                                 />
                                 <div style="font-size: 13px; color: #1e40af; line-height: 1.7;">
@@ -776,7 +881,7 @@ async function printPhieuById(id) {
                 </html>
             `);
             printWindow.document.close();
-            printWindow.onload = function() {
+            printWindow.onload = function () {
                 printWindow.print();
             };
         }, 150);

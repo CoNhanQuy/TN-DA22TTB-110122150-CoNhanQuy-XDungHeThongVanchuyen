@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../models/TaiXe.php';
+require_once __DIR__ . '/../models/taixe.php';
 
 /**
  * GiaoHangController
@@ -77,8 +77,14 @@ class GiaoHangController {
     }
 
     public function updateShipmentStatus(int $userId, int $dotId, string $trangThai): array {
-        if (!$this->model->driverOwnsShipment($userId, $dotId)) {
-            return ['success' => false, 'message' => 'Không có quyền cập nhật đợt vận chuyển này'];
+        // Debug: kiểm tra ownership
+        $debugInfo = $this->model->debugDriverOwnership($userId, $dotId);
+        if (!$debugInfo['owns']) {
+            return [
+                'success' => false,
+                'message' => 'Không có quyền cập nhật đợt vận chuyển này',
+                'data'    => $debugInfo
+            ];
         }
         $ok = $this->model->updateShipmentStatus($dotId, $trangThai);
         return $ok
@@ -141,5 +147,47 @@ class GiaoHangController {
         return $ok
             ? ['success' => true, 'message' => 'Báo cáo sự cố đã được gửi thành công']
             : ['success' => false, 'message' => 'Không thể gửi báo cáo sự cố. Đã xảy ra lỗi hệ thống.'];
+    }
+
+    // ── GPS Tracking ──────────────────────────────────────────────
+
+    /** Lấy vị trí GPS của tất cả tài xế và shipper đang hoạt động */
+    public function getActiveLocations(): array {
+        return ['success' => true, 'data' => $this->model->getActiveLocations()];
+    }
+
+    /** Khách hàng tra cứu vị trí GPS của shipper/tài xế theo mã đơn hàng */
+    public function getLocationForOrder(string $maDon): array {
+        $location = $this->model->getLocationForOrder($maDon);
+        if ($location === null) {
+            return ['success' => false, 'message' => 'Chưa có dữ liệu GPS cho đơn hàng này'];
+        }
+        return ['success' => true, 'data' => $location];
+    }
+
+    /** Tài xế / Shipper đẩy vị trí GPS lên server */
+    public function upsertLocation(int $userId, string $role, float $viDo, float $kinhDo): array {
+        if ($viDo == 0.0 || $kinhDo == 0.0) {
+            return ['success' => false, 'message' => 'Tọa độ không hợp lệ'];
+        }
+
+        if ($role === 'tai_xe') {
+            $dotId = $this->model->getActiveShipmentIdForDriver($userId);
+            if (!$dotId) {
+                return ['success' => false, 'message' => 'Không có chuyến xe đang di chuyển'];
+            }
+            $ok = $this->model->upsertLocation('trung_chuyen_kho', $dotId, $viDo, $kinhDo);
+        } else {
+            // shipper
+            $nghId = $this->model->getShipperNghId($userId);
+            if (!$nghId) {
+                return ['success' => false, 'message' => 'Không tìm thấy thông tin người giao hàng'];
+            }
+            $ok = $this->model->upsertLocation('shipper_giao_khach', $nghId, $viDo, $kinhDo);
+        }
+
+        return $ok
+            ? ['success' => true, 'message' => 'Vị trí đã được cập nhật']
+            : ['success' => false, 'message' => 'Lỗi lưu vị trí'];
     }
 }

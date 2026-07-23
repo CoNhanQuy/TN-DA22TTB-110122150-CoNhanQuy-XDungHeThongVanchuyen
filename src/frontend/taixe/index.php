@@ -3,8 +3,8 @@ require_once __DIR__ . '/../../backend/config/cauhinh.php';
 require_once __DIR__ . '/../../backend/core/helpers.php';
 requireRole('tai_xe');
 $pageTitle = 'Tài xế';
-$moduleCSS = '/DATN/frontend/assets/css/taixe.css';
-$moduleJS  = '/DATN/frontend/assets/js/taixe.js';
+$moduleCSS = APP_BASE_URL . '/frontend/assets/css/taixe.css';
+$moduleJS  = APP_BASE_URL . '/frontend/assets/js/taixe.js';
 include __DIR__ . '/../includes/header.php';
 ?>
 <div class="container">
@@ -17,7 +17,22 @@ include __DIR__ . '/../includes/header.php';
                 <strong>Vai trò:</strong> Tài xế
             </div>
         </div>
-        <a href="/DATN/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
+        <a href="<?php echo APP_BASE_URL; ?>/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
+    </div>
+
+    <!-- GPS Tracking Bar -->
+    <div class="gps-tracking-bar" id="gpsTrackingBar">
+        <div class="gps-bar-left">
+            <span class="gps-bar-icon">📡</span>
+            <div>
+                <div class="gps-bar-title">GPS Tracking</div>
+                <div class="gps-bar-status" id="gpsBarStatus">Chưa kích hoạt — nhấn "Bật GPS" để gửi vị trí lên máy chủ</div>
+            </div>
+        </div>
+        <div class="gps-bar-right">
+            <span class="gps-coords" id="gpsCoords"></span>
+            <button class="btn btn-primary btn-small" id="btnToggleGps" onclick="toggleDriverGps()">📍 Bật GPS</button>
+        </div>
     </div>
 
     <!-- Đợt vận chuyển -->

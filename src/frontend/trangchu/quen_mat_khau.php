@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -236,7 +236,7 @@
         </div>
         <button class="btn-primary" id="btnRequestOtp">Gửi mã OTP</button>
         <div class="back-link">
-            <a href="index.php">← Quay lại đăng nhập</a>
+            <a href="../../index.php">← Quay lại đăng nhập</a>
         </div>
     </div>
 
@@ -278,7 +278,7 @@
             <strong>Đổi mật khẩu thành công!</strong><br>
             Bạn có thể đăng nhập với mật khẩu mới.
         </div>
-        <a href="index.php" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:1.5;">
+        <a href="../../index.php" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:1.5;">
             Đăng nhập ngay
         </a>
     </div>
@@ -286,7 +286,7 @@
 </div>
 
 <script>
-const API = '../../backend/api_otp.php';
+const API = '../../backend/api/index.php';
 let currentPhone = '';
 let countdownTimer = null;
 let resendTimer   = null;

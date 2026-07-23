@@ -4,13 +4,13 @@
  * Thống kê doanh thu, đơn hàng, bảng giá cước.
  */
 class ThongKe {
-    private mysqli $db;
+    private $db;
 
-    public function __construct(mysqli $db) {
+    public function __construct($db) {
         $this->db = $db;
     }
 
-    public function getStatistics(string $from = '', string $to = ''): array {
+    public function getStatistics($from = '', $to = '') {
         $whereDate = '';
         if ($from && $to) {
             $f = $this->db->real_escape_string($from);
@@ -53,7 +53,7 @@ class ThongKe {
         return $stats;
     }
 
-    public function getDetailedStatistics(string $interval = 'day', string $from = '', string $to = ''): array {
+    public function getDetailedStatistics($interval = 'day', $from = '', $to = '') {
         $where = "WHERE 1=1";
         if ($from) {
             $f = $this->db->real_escape_string($from);
@@ -150,21 +150,53 @@ class ThongKe {
         ];
     }
 
-    public function getQuote(float $weight): ?float {
+    public function getQuote($weight, $km = 0, $loaiHangId = 0) {
         $res = $this->db->query(
-            "SELECT gia_co_ban FROM bang_gia_cuoc
+            "SELECT gia_co_ban, gia_theo_moi_km FROM bang_gia_cuoc
              WHERE khoi_luong_tu_kg <= $weight AND khoi_luong_den_kg >= $weight
              LIMIT 1"
         );
+
+        $row = null;
         if ($res && $res->num_rows > 0) {
-            return (float)$res->fetch_assoc()['gia_co_ban'];
+            $row = $res->fetch_assoc();
+        } else {
+            // Fallback: bậc cao nhất
+            $fb = $this->db->query("SELECT gia_co_ban, gia_theo_moi_km FROM bang_gia_cuoc ORDER BY khoi_luong_den_kg DESC LIMIT 1");
+            if ($fb) $row = $fb->fetch_assoc();
         }
-        // Fallback: bậc cao nhất
-        $fb = $this->db->query("SELECT gia_co_ban FROM bang_gia_cuoc ORDER BY khoi_luong_den_kg DESC LIMIT 1")->fetch_assoc();
-        return $fb ? (float)$fb['gia_co_ban'] : null;
+
+        if (!$row) return null;
+
+        $giaCoBan       = (float)$row['gia_co_ban'];
+        $giaTheoMoiKm   = (float)$row['gia_theo_moi_km'];
+
+        // Hệ số phụ thu theo loại hàng
+        $heSo = 1.0;
+        if ($loaiHangId > 0) {
+            $stmtHe = $this->db->prepare(
+                "SELECT he_so_phu_thu FROM loai_hang_hoa WHERE id = ? LIMIT 1"
+            );
+            if ($stmtHe) {
+                $stmtHe->bind_param('i', $loaiHangId);
+                $stmtHe->execute();
+                $resHe = $stmtHe->get_result();
+                if ($resHe && $resHe->num_rows > 0) {
+                    $heSo = (float)$resHe->fetch_assoc()['he_so_phu_thu'];
+                }
+                $stmtHe->close();
+            }
+        }
+
+        // Công thức: (Giá cơ bản + Số km × Giá theo mỗi km) × Hệ số phụ thu
+        return ($giaCoBan + $km * $giaTheoMoiKm) * $heSo;
     }
 
-    public function getGoodsTypes(): array {
+    public function getGoodsTypes() {
+        $res = $this->db->query("SELECT id, ten_loai_hang as ten_danh_muc, mo_ta, 1 as trang_thai FROM loai_hang_hoa ORDER BY id ASC");
+        if ($res && $res->num_rows > 0) {
+            return $res->fetch_all(MYSQLI_ASSOC);
+        }
         return [
             ['id' => 1, 'ten_danh_muc' => 'Hồ sơ, tài liệu',     'mo_ta' => '', 'trang_thai' => 1],
             ['id' => 2, 'ten_danh_muc' => 'Thực phẩm khô',        'mo_ta' => '', 'trang_thai' => 1],

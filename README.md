@@ -49,44 +49,49 @@ Hệ thống quản lý vận chuyển hàng hóa toàn diện dành cho doanh n
 - **Frontend**: HTML5, CSS3 (Vanilla CSS, Flexbox/Grid), JavaScript (ES6, Fetch API bất đồng bộ, Zero Page Reload).
 - **Backend**: PHP 8.2 (Cấu trúc Hướng đối tượng OOP, API Router tập trung).
 - **Database**: MySQL/MariaDB 10.4 (InnoDB Storage Engine, Database Transactions bảo vệ tính nhất quán dữ liệu ACID).
-- **Dịch vụ tích hợp**: SMS Gateway Textbee API (gửi tin nhắn OTP).
+- **Dịch vụ tích hợp**: SMS Gateway Textbee API (gửi tin nhắn OTP), Textbee Webhook (nhận phản hồi SMS).
 
 ---
 
 ## 📁 Cấu trúc thư mục dự án
 
 ```text
-DATN/
+DATNhost/
 ├── backend/
 │   ├── api/
-│   │   ├── admin/             # Các API nghiệp vụ quản trị
-│   │   ├── auth/              # Các API đăng nhập, logout, OTP
-│   │   ├── donhang/           # Các API tạo đơn, tra cứu, cập nhật trạng thái đơn
-│   │   ├── taixe/             # Các API điều phối, tài xế, shipper
-│   │   ├── thongke/           # Các API kết xuất dữ liệu thống kê, báo cáo
-│   │   └── index.php          # Entry Point & Router chính của hệ thống API
+│   │   ├── admin/               # Các API nghiệp vụ quản trị
+│   │   ├── auth/                # Các API đăng nhập, logout, OTP
+│   │   ├── donhang/             # Các API tạo đơn, tra cứu, cập nhật trạng thái đơn
+│   │   ├── gps/                 # Các API cập nhật và truy vấn vị trí GPS tài xế
+│   │   ├── taixe/               # Các API điều phối, tài xế, shipper
+│   │   ├── thongke/             # Các API kết xuất dữ liệu thống kê, báo cáo
+│   │   ├── textbee_webhook.php  # Xử lý Webhook nhận phản hồi SMS từ Textbee
+│   │   └── index.php            # Entry Point & Router chính của hệ thống API
 │   ├── config/
-│   │   ├── cauhinh.php        # Cấu hình kết nối DB mặc định và khởi tạo Session
-│   │   ├── database.php       # Khởi tạo kết nối mysqli dùng chung
-│   │   └── sms_config.php     # Tích hợp hàm gửi SMS OTP qua Textbee API
-│   ├── controllers/           # Lớp điều khiển xử lý logic nghiệp vụ
+│   │   ├── cauhinh.php          # Cấu hình kết nối DB mặc định và khởi tạo Session
+│   │   ├── database.php         # Khởi tạo kết nối mysqli dùng chung
+│   │   └── sms_config.php       # Tích hợp hàm gửi SMS OTP qua Textbee API
+│   ├── controllers/             # Lớp điều khiển xử lý logic nghiệp vụ
 │   ├── core/
-│   │   └── helpers.php        # Các hàm tiện ích dùng chung
-│   └── models/                # Lớp tương tác và truy vấn trực tiếp Database
+│   │   └── helpers.php          # Các hàm tiện ích dùng chung
+│   ├── logs/                    # Thư mục lưu log hệ thống
+│   └── models/                  # Lớp tương tác và truy vấn trực tiếp Database
 ├── frontend/
-│   ├── assets/                # CSS, JS, hình ảnh giao diện tĩnh
-│   ├── dieuphoi/              # Giao diện & xử lý logic của Điều phối viên
-│   ├── giaohang/              # Giao diện & xử lý logic của Shipper
-│   ├── includes/              # Sidebar, Header, Footer dùng chung
-│   ├── khachhang/             # Giao diện & xử lý logic của Khách hàng
-│   ├── quantri/               # Giao diện & xử lý logic của Admin
-│   ├── taixe/                 # Giao diện & xử lý logic của Tài xế chặng lớn
-│   ├── tiepnhan/              # Giao diện & xử lý logic của Nhân viên Tiếp nhận
-│   └── trangchu/              # Trang Landing Page và Đăng nhập hệ thống
-├── uploads/                   # Thư mục lưu trữ hình ảnh minh chứng giao hàng (POD)
-├── .env                       # Lưu cấu hình môi trường nhạy cảm (API Keys, DB Credentials)
-├── vanchuyen_dn.sql           # File dump cơ sở dữ liệu MySQL
-└── README.md                  # Tài liệu hướng dẫn sử dụng
+│   ├── assets/                  # CSS, JS, hình ảnh giao diện tĩnh
+│   ├── dieuphoi/                # Giao diện & xử lý logic của Điều phối viên
+│   ├── giaohang/                # Giao diện & xử lý logic của Shipper
+│   ├── includes/                # Sidebar, Header, Footer dùng chung
+│   ├── khachhang/               # Giao diện & xử lý logic của Khách hàng
+│   ├── quantri/                 # Giao diện & xử lý logic của Admin
+│   ├── taixe/                   # Giao diện & xử lý logic của Tài xế chặng lớn
+│   ├── tiepnhan/                # Giao diện & xử lý logic của Nhân viên Tiếp nhận
+│   └── trangchu/                # Trang Landing Page và Đăng nhập hệ thống
+├── uploads/                     # Thư mục lưu trữ hình ảnh minh chứng giao hàng (POD)
+├── docs/                        # Tài liệu kỹ thuật bổ sung
+├── .env                         # Lưu cấu hình môi trường nhạy cảm (API Keys, DB Credentials)
+├── .env.example                 # File mẫu cấu hình môi trường
+├── vanchuyen_dn.sql             # File dump cơ sở dữ liệu MySQL
+└── README.md                    # Tài liệu hướng dẫn sử dụng
 ```
 
 ---
@@ -99,20 +104,29 @@ DATN/
 
 ### 2. Các bước cài đặt
 1. **Sao chép mã nguồn**:
-   Đưa thư mục dự án `DATN` vào thư mục gốc của máy chủ web:
+   Đưa thư mục dự án `DATNhost` vào thư mục gốc của máy chủ web:
    ```text
-   C:\xampp\htdocs\DATN
+   C:\xampp\htdocs\DATNhost
    ```
 2. **Cấu hình biến môi trường**:
-   Tạo file `.env` ở thư mục gốc dự án (nếu chưa có) và khai báo các cấu hình kết nối DB cùng thông tin tài khoản Textbee:
+   Sao chép file `.env.example` thành `.env` ở thư mục gốc dự án và điền các thông tin thực tế:
    ```env
+   # Textbee SMS — https://textbee.dev
+   TEXTBEE_API_KEY=your_textbee_api_key_here
+   TEXTBEE_DEVICE_ID=your_textbee_device_id_here
+
+   # URL gốc của ứng dụng (không có dấu / cuối)
+   # Để trống nếu chạy local, hoặc điền URL ngrok/hosting
+   APP_BASE_URL=
+
+   # Cấu hình Database
    DB_HOST=localhost
    DB_USER=root
    DB_PASS=
    DB_NAME=vanchuyen_dn
-   
-   TEXTBEE_API_KEY=your_textbee_api_key_here
-   TEXTBEE_DEVICE_ID=your_textbee_device_id_here
+
+   # Webhook Secret để xác thực các yêu cầu gửi đến từ Textbee (Bỏ trống nếu không dùng)
+   TEXTBEE_WEBHOOK_SECRET=
    ```
 3. **Import Cơ sở dữ liệu**:
    - Truy cập trang quản trị cơ sở dữ liệu `http://localhost/phpmyadmin/`.
@@ -121,7 +135,7 @@ DATN/
 
 4. **Truy cập hệ thống**:
    Mở trình duyệt và truy cập vào đường dẫn:
-   `http://localhost/DATN/frontend/trangchu/index.php`
+   `http://localhost/DATNhost/frontend/trangchu/index.php`
 
 ---
 

@@ -4,7 +4,7 @@
  * Xử lý 3 action OTP: request_otp, verify_otp, reset_password
  * Gọi AuthController
  */
-require_once __DIR__ . '/../../controllers/AuthController.php';
+require_once __DIR__ . '/../../controllers/authcontroller.php';
 require_once __DIR__ . '/../../config/sms_config.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

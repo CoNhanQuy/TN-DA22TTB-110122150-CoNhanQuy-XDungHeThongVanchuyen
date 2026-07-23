@@ -9,6 +9,7 @@ const TAB_META = {
     routes:           { title: 'Tuyến đường',        sub: 'Quản lý tuyến vận chuyển' },
     pricing:          { title: 'Bảng giá',           sub: 'Cấu hình phí vận chuyển' },
     reports:          { title: 'Báo cáo',            sub: 'Thống kê & phân tích dữ liệu' },
+    gpsmap:           { title: 'Bản đồ GPS',         sub: 'Vị trí thời gian thực của tài xế & shipper' },
 };
 
 // -- Map vai trò sang tiếng Việt -----------------------------------------------
@@ -98,6 +99,24 @@ function switchTab(tabName) {
     const subEl   = document.getElementById('topbarSub');
     if (titleEl) titleEl.textContent = meta.title;
     if (subEl)   subEl.textContent   = meta.sub;
+
+    if (tabName === 'gpsmap') {
+        setTimeout(() => {
+            _initGpsMap();
+            if (_gpsMap) {
+                _gpsMap.invalidateSize();
+            }
+            loadGpsLocations();
+
+            if (_gpsRefreshInt) clearInterval(_gpsRefreshInt);
+            _gpsRefreshInt = setInterval(loadGpsLocations, 30000);
+        }, 150);
+    } else {
+        if (typeof _gpsRefreshInt !== 'undefined' && _gpsRefreshInt) {
+            clearInterval(_gpsRefreshInt);
+            _gpsRefreshInt = null;
+        }
+    }
 }
 
 // Tab switching
@@ -114,8 +133,11 @@ let __cacheRoutes = [];
 let __cacheDeliveryPersons = [];
 let __cachePricing = [];
 let __cacheCustomers = [];
+let __cacheOrders = [];
 
-// Sorting states
+// Filtering & Sorting states
+let userRoleFilter = '';
+let orderStatusFilter = '';
 let userSortState = { field: '', direction: '' };
 let deliverySortState = { field: '', direction: '' };
 let customerSortState = { field: '', direction: '' };
@@ -154,26 +176,19 @@ function updateSortIcons(section, sortState) {
     });
 }
 
-function toggleUserSort(field) {
-    if (userSortState.field === field) {
-        if (userSortState.direction === 'asc') {
-            userSortState.direction = 'desc';
-        } else if (userSortState.direction === 'desc') {
-            userSortState.direction = '';
-        } else {
-            userSortState.direction = 'asc';
-        }
-    } else {
-        userSortState.field = field;
-        userSortState.direction = 'asc';
+function applyUserFilterAndSort() {
+    let list = [...__cacheUsers];
+    
+    // Lọc theo vai trò
+    if (userRoleFilter) {
+        list = list.filter(u => u.vai_tro === userRoleFilter);
     }
     
-    updateSortIcons('users', userSortState);
-    
-    let sorted = [...__cacheUsers];
-    if (userSortState.direction) {
+    // Sắp xếp
+    if (userSortState.field && userSortState.direction) {
+        const field = userSortState.field;
         const d = userSortState.direction === 'asc' ? 1 : -1;
-        sorted.sort((a, b) => {
+        list.sort((a, b) => {
             let valA = a[field] ?? '';
             let valB = b[field] ?? '';
             
@@ -191,7 +206,34 @@ function toggleUserSort(field) {
             return cmp * d;
         });
     }
-    renderUsersTable(sorted);
+    
+    renderUsersTable(list);
+}
+
+function filterUserByRole() {
+    const select = document.getElementById('userRoleFilter');
+    if (select) {
+        userRoleFilter = select.value;
+    }
+    applyUserFilterAndSort();
+}
+
+function toggleUserSort(field) {
+    if (userSortState.field === field) {
+        if (userSortState.direction === 'asc') {
+            userSortState.direction = 'desc';
+        } else if (userSortState.direction === 'desc') {
+            userSortState.direction = '';
+        } else {
+            userSortState.direction = 'asc';
+        }
+    } else {
+        userSortState.field = field;
+        userSortState.direction = 'asc';
+    }
+    
+    updateSortIcons('users', userSortState);
+    applyUserFilterAndSort();
 }
 
 function toggleDeliverySort(field) {
@@ -311,9 +353,51 @@ function renderCustomersTable(customers) {
     }
 }
 
+function renderOrdersTable(orders) {
+    const tbody = document.getElementById('ordersList');
+    if (!tbody) return;
+    if (Array.isArray(orders) && orders.length > 0) {
+        tbody.innerHTML = orders.map(o => {
+            const status = o.trang_thai_don_hang ?? o.trang_thai ?? '';
+            const hangHoa = o.ten_hang_hoa ?? '';
+            return `
+            <tr>
+                <td><code>${o.ma_don ?? ''}</code></td>
+                <td>${hangHoa}</td>
+                <td>${o.khoi_luong_kg ?? ''}</td>
+                <td>${vnd.format(Number(o.phi_van_chuyen ?? 0))}</td>
+                <td>${badgeOrder(status)}</td>
+                <td>${(o.ngay_tao ?? '').slice(0, 16)}</td>
+                <td><button class="btn btn-ghost btn-sm" onclick="openOrderDetailModal(${o.id})">Chi tiết</button></td>
+            </tr>`;
+        }).join('');
+    } else {
+        tbody.innerHTML = emptyRow(7, 'Chưa có đơn hàng nào');
+    }
+}
+
+function applyOrderFilter() {
+    let list = [...__cacheOrders];
+    if (orderStatusFilter) {
+        list = list.filter(o => {
+            const status = o.trang_thai_don_hang ?? o.trang_thai ?? '';
+            return status === orderStatusFilter;
+        });
+    }
+    renderOrdersTable(list);
+}
+
+function filterOrderByStatus() {
+    const select = document.getElementById('orderStatusFilter');
+    if (select) {
+        orderStatusFilter = select.value;
+    }
+    applyOrderFilter();
+}
+
 
 function apiGet(action) {
-    return fetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=${encodeURIComponent(action)}`, {
+    return fetch(`${getApiBase()}/backend/api/index.php?action=${encodeURIComponent(action)}`, {
         method: 'GET',
         credentials: 'include'
     }).then(r => r.json());
@@ -326,7 +410,7 @@ function apiPost(action, payload) {
         formData.append(key, value);
     });
 
-    return fetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=${encodeURIComponent(action)}`, {
+    return fetch(`${getApiBase()}/backend/api/index.php?action=${encodeURIComponent(action)}`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -334,7 +418,7 @@ function apiPost(action, payload) {
 }
 
 function apiDelete(action, payload) {
-    return fetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=${encodeURIComponent(action)}`, {
+    return fetch(`${getApiBase()}/backend/api/index.php?action=${encodeURIComponent(action)}`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -447,8 +531,6 @@ function bindAdminForms() {
                 den_kg: Number(document.getElementById('pricingToKg').value),
                 phi_co_ban: Number(document.getElementById('pricingBaseFee').value),
                 phi_km: document.getElementById('pricingPerKm').value ? Number(document.getElementById('pricingPerKm').value) : null,
-                ap_dung_tu: document.getElementById('pricingApplyFrom').value || null,
-                ap_dung_den: document.getElementById('pricingApplyTo').value || null,
                 trang_thai: Number(document.getElementById('pricingStatus').value)
             };
             payload.op = id ? 'update' : 'create';
@@ -550,8 +632,6 @@ function openPricingModal(item = null) {
     document.getElementById('pricingToKg').value = item?.den_kg ?? '';
     document.getElementById('pricingBaseFee').value = item?.phi_co_ban ?? '';
     document.getElementById('pricingPerKm').value = item?.phi_km ?? '';
-    document.getElementById('pricingApplyFrom').value = item?.ap_dung_tu ? String(item.ap_dung_tu).slice(0, 10) : '';
-    document.getElementById('pricingApplyTo').value = item?.ap_dung_den ? String(item.ap_dung_den).slice(0, 10) : '';
     document.getElementById('pricingStatus').value = (item?.trang_thai ?? 1).toString();
 }
 function closePricingModal() { document.getElementById('pricingModal').style.display = 'none'; }
@@ -580,7 +660,7 @@ async function openOrderDetailModal(id) {
     document.getElementById('detailTimeline').innerHTML = '<p class="muted">Đang tải lịch sử...</p>';
 
     try {
-        const res = await fetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=order_detail&id=${id}`, {
+        const res = await fetch(`${getApiBase()}/backend/api/index.php?action=order_detail&id=${id}`, {
             method: 'GET',
             credentials: 'include'
         }).then(r => r.json());
@@ -663,7 +743,7 @@ function buildStatisticsUrl(withInterval = false) {
     if (to) params.set('to', to);
     if (withInterval) params.set('interval', interval);
     const q = params.toString();
-    return `${window.API_BASE || '/DATN'}/backend/api/index.php?action=statistics${q ? `&${q}` : ''}`;
+    return `${getApiBase()}/backend/api/index.php?action=statistics${q ? `&${q}` : ''}`;
 }
 
 function renderTimeTable(rows) {
@@ -956,10 +1036,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         const data = await apiGet('users');
         if (data.success && Array.isArray(data.data) && data.data.length > 0) {
             __cacheUsers = data.data;
-            renderUsersTable(__cacheUsers);
+            applyUserFilterAndSort();
         } else {
             __cacheUsers = [];
-            renderUsersTable([]);
+            applyUserFilterAndSort();
         }
     } catch(err) {
         const el = document.getElementById('usersList');
@@ -971,24 +1051,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         const data = await apiGet('orders');
         const orders = data.data?.orders ?? data.data ?? [];
-        const tbody  = document.getElementById('ordersList');
+        __cacheOrders = orders;
         const recent = document.getElementById('dashRecentOrders');
 
         if (data.success && Array.isArray(orders) && orders.length > 0) {
-            if (tbody) tbody.innerHTML = orders.map(o => {
-                const status = o.trang_thai_don_hang ?? o.trang_thai ?? '';
-                const hangHoa = o.ten_hang_hoa ?? '';
-                return `
-                <tr>
-                    <td><code>${o.ma_don ?? ''}</code></td>
-                    <td>${hangHoa}</td>
-                    <td>${o.khoi_luong_kg ?? ''}</td>
-                    <td>${vnd.format(Number(o.phi_van_chuyen ?? 0))}</td>
-                    <td>${badgeOrder(status)}</td>
-                    <td>${(o.ngay_tao ?? '').slice(0, 16)}</td>
-                    <td><button class="btn btn-ghost btn-sm" onclick="openOrderDetailModal(${o.id})">Chi tiết</button></td>
-                </tr>`;
-            }).join('');
+            applyOrderFilter();
 
             if (recent) recent.innerHTML = orders.slice(0, 8).map(o => {
                 const status = o.trang_thai_don_hang ?? o.trang_thai ?? '';
@@ -1004,14 +1071,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </tr>`;
             }).join('');
         } else {
-            if (tbody)  tbody.innerHTML  = emptyRow(7, 'Chua co don hang nao');
-            if (recent) recent.innerHTML = emptyRow(6, 'Chua co don hang nao');
+            const tbody  = document.getElementById('ordersList');
+            if (tbody)  tbody.innerHTML  = emptyRow(7, 'Chưa có đơn hàng nào');
+            if (recent) recent.innerHTML = emptyRow(6, 'Chưa có đơn hàng nào');
         }
     } catch(err) {
         const el = document.getElementById('ordersList');
-        if (el) el.innerHTML = emptyRow(7, 'Loi tai du lieu don hang');
+        if (el) el.innerHTML = emptyRow(7, 'Lỗi tải dữ liệu đơn hàng');
         const el2 = document.getElementById('dashRecentOrders');
-        if (el2) el2.innerHTML = emptyRow(6, 'Loi tai du lieu');
+        if (el2) el2.innerHTML = emptyRow(6, 'Lỗi tải dữ liệu');
     }
 
     // 4. Vehicles
@@ -1101,8 +1169,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <td>${p.den_kg ?? ''}</td>
                         <td>${p.phi_co_ban ? vnd.format(Number(p.phi_co_ban)) : ''}</td>
                         <td>${p.phi_per_km ? vnd.format(Number(p.phi_per_km)) : ''}</td>
-                        <td>${p.ap_dung_tu ?? ''}</td>
-                        <td>${p.ap_dung_den ?? ''}</td>
                         <td>
                             <button class="btn btn-primary btn-sm" onclick="openPricingModal(__cachePricing.find(x=>x.id==${p.id}))">Sửa</button>
                             <button class="btn btn-danger btn-sm" onclick="deletePricing(${p.id})">Xóa</button>
@@ -1110,12 +1176,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                     </tr>`).join('');
             } else {
                 __cachePricing = [];
-                tbody.innerHTML = emptyRow(7, 'Chưa có dữ liệu bảng giá');
+                tbody.innerHTML = emptyRow(5, 'Chưa có dữ liệu bảng giá');
             }
         }
     } catch(err) {
         const el = document.getElementById('pricingList');
-        if (el) el.innerHTML = emptyRow(7, 'Lỗi tải dữ liệu bảng giá');
+        if (el) el.innerHTML = emptyRow(5, 'Lỗi tải dữ liệu bảng giá');
     }
 
     // 8. Customers
@@ -1136,3 +1202,252 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Bind forms
     bindAdminForms();
 });
+
+// ═══════════════════════════════════════════════════════════════════
+// GPS MAP MODULE
+// ═══════════════════════════════════════════════════════════════════
+
+let _gpsMap        = null;   // Leaflet map instance
+let _gpsMarkers    = [];     // All current markers
+let _gpsRefreshInt = null;   // setInterval handle
+
+// Custom icons
+function _gpsIcon(emoji, color) {
+    return L.divIcon({
+        className: '',
+        html: `<div class="gps-marker-icon" style="background:${color};">${emoji}</div>`,
+        iconSize:   [38, 38],
+        iconAnchor: [19, 38],
+        popupAnchor:[0, -40],
+    });
+}
+
+const GPS_ICONS = {
+    driver:  () => _gpsIcon('🚚', '#1d4ed8'),
+    shipper: () => _gpsIcon('🛵', '#d97706'),
+    branch:  () => _gpsIcon('🏢', '#dc2626'),
+};
+
+function _initGpsMap() {
+    if (_gpsMap) return true;
+
+    if (typeof L === 'undefined') {
+        console.warn('Leaflet (L) chưa được nạp.');
+        return false;
+    }
+
+    const mapContainer = document.getElementById('gpsLeafletMap');
+    if (!mapContainer) return false;
+
+    try {
+        _gpsMap = L.map('gpsLeafletMap', {
+            center: [10.05, 106.10],
+            zoom: 10,
+            zoomControl: true,
+        });
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        }).addTo(_gpsMap);
+
+        return true;
+    } catch (err) {
+        console.error('Lỗi khi khởi tạo bản đồ Leaflet:', err);
+        return false;
+    }
+}
+
+function _clearGpsMarkers() {
+    if (_gpsMap && Array.isArray(_gpsMarkers)) {
+        _gpsMarkers.forEach(m => _gpsMap.removeLayer(m));
+    }
+    _gpsMarkers = [];
+}
+
+function _addMarker(lat, lng, icon, popupHtml) {
+    if (!_gpsMap) return null;
+    const marker = L.marker([lat, lng], { icon }).addTo(_gpsMap);
+    marker.bindPopup(popupHtml, { maxWidth: 260 });
+    _gpsMarkers.push(marker);
+    return marker;
+}
+
+async function loadGpsLocations() {
+    if (!_gpsMap) {
+        if (!_initGpsMap()) {
+            const statusEl = document.getElementById('gpsMapStatus');
+            if (statusEl) statusEl.innerHTML = '<span class="gps-pulse error"></span> Lỗi nạp bản đồ';
+            return;
+        }
+    }
+
+    const statusEl = document.getElementById('gpsMapStatus');
+    const lastUpEl = document.getElementById('gpsLastUpdate');
+
+    try {
+        const res  = await apiFetch(`${getApiBase()}/backend/api/index.php?action=gps_locations`);
+        const json = await res.json();
+
+        if (!json.success) {
+            if (statusEl) statusEl.innerHTML = '<span class="gps-pulse error"></span> Lỗi tải dữ liệu';
+            return;
+        }
+
+        _clearGpsMarkers();
+
+        const { branches = [], drivers = [], shippers = [] } = json.data;
+
+        // ─── Chi nhánh ───
+        branches.forEach(b => {
+            const lat = parseFloat(b.vi_do);
+            const lng = parseFloat(b.kinh_do);
+            if (isNaN(lat) || isNaN(lng)) return;
+            _addMarker(lat, lng, GPS_ICONS.branch(),
+                `<div class="gps-popup">
+                    <strong>🏢 ${escapeHtml(b.ten_chi_nhanh)}</strong>
+                    <p>${escapeHtml(b.dia_chi || '')}</p>
+                </div>`
+            );
+        });
+
+        // ─── Tài xế ───
+        const driverListEl = document.getElementById('gpsDriverList');
+        const driverCountEl = document.getElementById('gpsDriverCount');
+        if (driverCountEl) driverCountEl.textContent = drivers.length;
+
+        if (driverListEl) {
+            if (drivers.length === 0) {
+                driverListEl.innerHTML = '<p class="gps-empty">Chưa có tài xế đang di chuyển</p>';
+            } else {
+                driverListEl.innerHTML = drivers.map(d => `
+                    <div class="gps-list-item" onclick="focusGpsMarker(${parseFloat(d.vi_do)}, ${parseFloat(d.kinh_do)})">
+                        <div class="gps-list-avatar driver-avatar">🚚</div>
+                        <div class="gps-list-info">
+                            <strong>${escapeHtml(d.ten_nguoi || '---')}</strong>
+                            <span>${escapeHtml(d.ma_dot || '')} · ${escapeHtml(d.bien_so || '')}</span>
+                            <small>${formatTimeAgo(d.thoi_gian_ghi_nhan)}</small>
+                        </div>
+                    </div>`).join('');
+            }
+        }
+
+        drivers.forEach(d => {
+            const lat = parseFloat(d.vi_do);
+            const lng = parseFloat(d.kinh_do);
+            if (isNaN(lat) || isNaN(lng)) return;
+            _addMarker(lat, lng, GPS_ICONS.driver(),
+                `<div class="gps-popup">
+                    <strong>🚚 ${escapeHtml(d.ten_nguoi || '---')}</strong>
+                    <p>Chuyến: <b>${escapeHtml(d.ma_dot || '---')}</b></p>
+                    <p>Biển số: ${escapeHtml(d.bien_so || '---')}</p>
+                    <p class="gps-popup-time">⏱ ${formatTimeAgo(d.thoi_gian_ghi_nhan)}</p>
+                </div>`
+            );
+        });
+
+        // ─── Shipper ───
+        const shipperListEl = document.getElementById('gpsShipperList');
+        const shipperCountEl = document.getElementById('gpsShipperCount');
+        if (shipperCountEl) shipperCountEl.textContent = shippers.length;
+
+        if (shipperListEl) {
+            if (shippers.length === 0) {
+                shipperListEl.innerHTML = '<p class="gps-empty">Chưa có shipper đang giao hàng</p>';
+            } else {
+                shipperListEl.innerHTML = shippers.map(s => `
+                    <div class="gps-list-item" onclick="focusGpsMarker(${parseFloat(s.vi_do)}, ${parseFloat(s.kinh_do)})">
+                        <div class="gps-list-avatar shipper-avatar">🛵</div>
+                        <div class="gps-list-info">
+                            <strong>${escapeHtml(s.ten_nguoi || '---')}</strong>
+                            <small>${formatTimeAgo(s.thoi_gian_ghi_nhan)}</small>
+                        </div>
+                    </div>`).join('');
+            }
+        }
+
+        shippers.forEach(s => {
+            const lat = parseFloat(s.vi_do);
+            const lng = parseFloat(s.kinh_do);
+            if (isNaN(lat) || isNaN(lng)) return;
+            _addMarker(lat, lng, GPS_ICONS.shipper(),
+                `<div class="gps-popup">
+                    <strong>🛵 ${escapeHtml(s.ten_nguoi || '---')}</strong>
+                    <p>Đang giao hàng tận nơi</p>
+                    <p class="gps-popup-time">⏱ ${formatTimeAgo(s.thoi_gian_ghi_nhan)}</p>
+                </div>`
+            );
+        });
+
+        // Fit map to all markers if any
+        if (_gpsMarkers.length > 0) {
+            const group = L.featureGroup(_gpsMarkers);
+            _gpsMap.fitBounds(group.getBounds().pad(0.15));
+        }
+
+        if (statusEl) statusEl.innerHTML = '<span class="gps-pulse active"></span> Trực tuyến';
+        if (lastUpEl) lastUpEl.textContent = new Date().toLocaleTimeString('vi-VN');
+
+    } catch (err) {
+        console.error('GPS load error:', err);
+        if (statusEl) statusEl.innerHTML = '<span class="gps-pulse error"></span> Lỗi kết nối';
+    }
+}
+
+function focusGpsMarker(lat, lng) {
+    if (!_gpsMap || isNaN(lat) || isNaN(lng)) return;
+    _gpsMap.setView([lat, lng], 15, { animate: true });
+}
+
+async function refreshGpsMap() {
+    const btn = document.getElementById('btnRefreshGps');
+    let originalHtml = '🔄 Làm mới';
+
+    if (btn) {
+        btn.disabled = true;
+        originalHtml = btn.innerHTML;
+        btn.innerHTML = '⏳ Đang tải...';
+    }
+
+    try {
+        if (!_gpsMap) {
+            _initGpsMap();
+        }
+        if (_gpsMap) {
+            _gpsMap.invalidateSize();
+        }
+
+        await loadGpsLocations();
+
+        if (_gpsRefreshInt) {
+            clearInterval(_gpsRefreshInt);
+            _gpsRefreshInt = setInterval(loadGpsLocations, 30000);
+        }
+    } catch (err) {
+        console.error('Lỗi khi làm mới bản đồ GPS:', err);
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+}
+
+// Global scope export for inline event handlers
+window.refreshGpsMap = refreshGpsMap;
+window.focusGpsMarker = focusGpsMarker;
+window.loadGpsLocations = loadGpsLocations;
+
+function formatTimeAgo(dateStr) {
+    if (!dateStr) return '';
+    try {
+        const d    = new Date(dateStr);
+        const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+        if (diff < 60)  return `${diff}s trước`;
+        if (diff < 3600) return `${Math.floor(diff/60)}ph trước`;
+        return d.toLocaleTimeString('vi-VN');
+    } catch { return dateStr; }
+}
+
+
+

@@ -1,13 +1,14 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 4.9.0.1
 -- https://www.phpmyadmin.net/
 --
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th6 26, 2026 lúc 03:47 PM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.2.12
+-- Máy chủ: sql108.infinityfree.com
+-- Thời gian đã tạo: Th7 21, 2026 lúc 06:01 AM
+-- Phiên bản máy phục vụ: 11.4.12-MariaDB
+-- Phiên bản PHP: 7.2.22
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
@@ -18,7 +19,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Cơ sở dữ liệu: `vanchuyen_dn`
+-- Cơ sở dữ liệu: `if0_42253679_vanchuyen_dn`
 --
 
 -- --------------------------------------------------------
@@ -40,9 +41,9 @@ CREATE TABLE `bang_gia_cuoc` (
 --
 
 INSERT INTO `bang_gia_cuoc` (`id`, `khoi_luong_tu_kg`, `khoi_luong_den_kg`, `gia_co_ban`, `gia_theo_moi_km`) VALUES
-(1, 0.00, 4.99, 30000.00, 5000.00),
-(2, 5.00, 19.99, 60000.00, 4000.00),
-(3, 20.00, 999.00, 120000.00, 2000.00);
+(1, '0.00', '4.99', '20000.00', '300.00'),
+(2, '5.00', '19.99', '35000.00', '400.00'),
+(3, '20.00', '999.00', '50000.00', '600.00');
 
 -- --------------------------------------------------------
 
@@ -91,8 +92,8 @@ CREATE TABLE `chi_nhanh` (
 --
 
 INSERT INTO `chi_nhanh` (`id`, `ma_chi_nhanh`, `ten_chi_nhanh`, `dia_chi`, `so_dien_thoai`, `toa_do_kinh_do`, `toa_do_vi_do`) VALUES
-(1, 'CN_TRAVINH', 'Chi nhánh Trà Vinh', '123 Lê Lợi, Khóm 1, Phường Trà Vinh, tỉnh Vĩnh Long', '02943123456', 106.34654300, 9.93456300),
-(2, 'CN_VINHLONG', 'Chi nhánh Vĩnh Long', '456 Nguyễn Huệ, Khóm 4, Phường Long Châu, tỉnh Vĩnh Long', '02703456789', 105.96443200, 10.25345200);
+(1, 'CN_TRAVINH', 'Chi nhánh Trà Vinh', '123 Lê Lợi, Khóm 1, Phường Trà Vinh, tỉnh Vĩnh Long', '02943123456', '106.34654300', '9.93456300'),
+(2, 'CN_VINHLONG', 'Chi nhánh Vĩnh Long', '456 Nguyễn Huệ, Khóm 4, Phường Long Châu, tỉnh Vĩnh Long', '02703456789', '105.96443200', '10.25345200');
 
 -- --------------------------------------------------------
 
@@ -118,7 +119,15 @@ INSERT INTO `chi_tiet_dot_van_chuyen` (`id`, `dot_van_chuyen_id`, `don_hang_id`,
 (4, 2, 5, 'da_giao_kho_dich'),
 (5, 2, 6, 'dang_van_chuyen'),
 (6, 2, 11, 'da_giao_kho_dich'),
-(7, 3, 12, 'dang_van_chuyen');
+(7, 3, 12, 'dang_van_chuyen'),
+(8, 4, 2, 'da_giao_kho_dich'),
+(9, 4, 13, 'da_giao_kho_dich'),
+(10, 4, 20, 'da_giao_kho_dich'),
+(11, 5, 7, 'da_giao_kho_dich'),
+(12, 5, 21, 'da_giao_kho_dich'),
+(13, 5, 23, 'da_giao_kho_dich'),
+(14, 6, 22, 'dang_van_chuyen'),
+(15, 6, 24, 'dang_van_chuyen');
 
 -- --------------------------------------------------------
 
@@ -141,21 +150,27 @@ CREATE TABLE `chi_tiet_hang_hoa` (
 --
 
 INSERT INTO `chi_tiet_hang_hoa` (`id`, `don_hang_id`, `loai_hang_hoa_id`, `ten_mat_hang`, `so_luong`, `khoi_luong_uoc_tinh_kg`, `ghi_chu`) VALUES
-(1, 1, 4, 'Thùng đựng Linh kiện máy tính', 1, 2.50, 'Hàng giá trị cao'),
-(2, 1, 1, 'Dây cáp sạc bọc chống sốc', 2, 0.50, NULL),
-(3, 2, 2, 'Thùng cam sành Trà Vinh', 1, 12.00, 'Hàng thực phẩm giao nhanh'),
-(4, 3, 4, 'Điện thoại iPhone 15 Pro Max', 1, 2.50, 'Hàng giá trị cao, bọc xốp kỹ'),
-(5, 4, 3, 'Tủ lạnh mini Electrolux', 1, 14.00, 'Hàng cồng kềnh, tránh va đập'),
-(6, 5, 3, 'Thùng linh kiện máy công nghiệp', 2, 45.00, 'Hàng nặng, cần xe nâng'),
-(7, 6, 1, 'Tập sách giáo khoa cũ', 5, 1.20, NULL),
-(8, 7, 2, 'Thùng khoai lang Bình Tân Vĩnh Long', 1, 6.80, 'Hàng nông sản tươi sống'),
-(9, 8, 3, 'Bộ máy tính để bàn (PC)', 1, 32.00, 'Màn hình bọc chống sốc'),
-(10, 9, 1, 'Phong bì hồ sơ du học', 1, 0.50, 'Giao hỏa tốc'),
-(11, 10, 2, 'Thùng bưởi năm roi Vĩnh Long', 1, 18.50, 'Hàng thực phẩm dập nhẹ'),
-(12, 11, 3, 'Thùng hàng quần áo may mặc xuất khẩu', 3, 60.00, 'Hàng nặng đóng kiện'),
-(13, 12, 1, 'Bộ nồi chảo dùng cho bếp từ', 1, 3.10, NULL),
-(14, 13, 2, 'Thùng cam sành Tam Bình', 1, 8.20, 'Giao trong ngày'),
-(15, 14, 3, 'Thùng sơn tường Dulux 18L', 1, 22.00, 'Hàng nặng, dễ tràn đổ');
+(1, 1, 4, 'Thùng đựng Linh kiện máy tính', 1, '2.50', 'Hàng giá trị cao'),
+(2, 1, 1, 'Dây cáp sạc bọc chống sốc', 2, '0.50', NULL),
+(3, 2, 2, 'Thùng cam sành Trà Vinh', 1, '12.00', 'Hàng thực phẩm giao nhanh'),
+(4, 3, 4, 'Điện thoại iPhone 15 Pro Max', 1, '2.50', 'Hàng giá trị cao, bọc xốp kỹ'),
+(5, 4, 3, 'Tủ lạnh mini Electrolux', 1, '14.00', 'Hàng cồng kềnh, tránh va đập'),
+(6, 5, 3, 'Thùng linh kiện máy công nghiệp', 2, '45.00', 'Hàng nặng, cần xe nâng'),
+(7, 6, 1, 'Tập sách giáo khoa cũ', 5, '1.20', NULL),
+(8, 7, 2, 'Thùng khoai lang Bình Tân Vĩnh Long', 1, '6.80', 'Hàng nông sản tươi sống'),
+(9, 8, 3, 'Bộ máy tính để bàn (PC)', 1, '32.00', 'Màn hình bọc chống sốc'),
+(10, 9, 1, 'Phong bì hồ sơ du học', 1, '0.50', 'Giao hỏa tốc'),
+(11, 10, 2, 'Thùng bưởi năm roi Vĩnh Long', 1, '18.50', 'Hàng thực phẩm dập nhẹ'),
+(12, 11, 3, 'Thùng hàng quần áo may mặc xuất khẩu', 3, '60.00', 'Hàng nặng đóng kiện'),
+(13, 12, 1, 'Bộ nồi chảo dùng cho bếp từ', 1, '3.10', NULL),
+(14, 13, 2, 'Thùng cam sành Tam Bình', 1, '8.20', 'Giao trong ngày'),
+(15, 14, 3, 'Thùng sơn tường Dulux 18L', 1, '22.00', 'Hàng nặng, dễ tràn đổ'),
+(21, 20, 5, 'Hoa', 1, '1.00', 'hoa tươi giao gấp'),
+(22, 21, 1, 'Vali quần áo', 1, '8.00', ''),
+(23, 22, 1, 'Tập sách tiểu thuyết', 1, '2.00', ''),
+(24, 23, 2, 'Combo snack', 1, '2.00', ''),
+(25, 24, 1, 'Vali quần áo', 1, '5.00', ''),
+(26, 25, 4, 'Samsung A12', 1, '0.20', '');
 
 -- --------------------------------------------------------
 
@@ -182,20 +197,26 @@ CREATE TABLE `don_hang` (
 --
 
 INSERT INTO `don_hang` (`id`, `ma_don_hang`, `khach_hang_gui_id`, `khach_hang_nhan_id`, `chi_nhanh_gui_id`, `chi_nhanh_nhan_id`, `tong_khoi_luong_kg`, `phi_van_chuyen`, `tien_tra_truoc`, `trang_thai_don_hang`, `ngay_tao`) VALUES
-(1, 'DH001', 1, 2, 1, 2, 3.00, 150000.00, 150000.00, 'hoan_tat', '2026-06-19 01:34:19'),
-(2, 'DH002', 1, 2, 1, 2, 12.00, 250000.00, 0.00, 'da_nhap_kho', '2026-06-19 01:34:19'),
-(3, 'DH003', 4, 8, 1, 2, 2.50, 330000.00, 330000.00, 'hoan_tat', '2026-06-26 05:56:23'),
-(4, 'DH004', 5, 9, 1, 2, 14.00, 300000.00, 0.00, 'dang_giao_hang', '2026-06-26 05:56:23'),
-(5, 'DH005', 6, 10, 1, 2, 45.00, 240000.00, 240000.00, 'da_den_kho_dich', '2026-06-26 05:56:23'),
-(6, 'DH006', 7, 11, 1, 2, 1.20, 330000.00, 0.00, 'dang_van_chuyen', '2026-06-26 05:56:23'),
-(7, 'DH007', 8, 4, 2, 1, 6.80, 300000.00, 300000.00, 'da_nhap_kho', '2026-06-26 05:56:23'),
-(8, 'DH008', 9, 5, 2, 1, 32.00, 240000.00, 0.00, 'cho_tiep_nhan', '2026-06-26 05:56:23'),
-(9, 'DH009', 10, 6, 2, 1, 0.50, 330000.00, 330000.00, 'hoan_tat', '2026-06-26 05:56:23'),
-(10, 'DH010', 11, 7, 2, 1, 18.50, 300000.00, 0.00, 'dang_giao_hang', '2026-06-26 05:56:23'),
-(11, 'DH011', 13, 12, 1, 2, 60.00, 240000.00, 240000.00, 'da_den_kho_dich', '2026-06-26 05:56:23'),
-(12, 'DH012', 14, 15, 2, 1, 3.10, 330000.00, 0.00, 'dang_van_chuyen', '2026-06-26 05:56:23'),
-(13, 'DH013', 15, 13, 1, 2, 8.20, 300000.00, 300000.00, 'da_nhap_kho', '2026-06-26 05:56:23'),
-(14, 'DH014', 12, 14, 2, 1, 22.00, 240000.00, 0.00, 'cho_tiep_nhan', '2026-06-26 05:56:23');
+(1, 'DH001', 1, 2, 1, 2, '3.00', '330000.00', '150000.00', 'hoan_tat', '2026-06-19 01:34:19'),
+(2, 'DH002', 1, 2, 1, 2, '12.00', '315000.00', '0.00', 'dang_giao_hang', '2026-06-19 01:34:19'),
+(3, 'DH003', 4, 8, 1, 2, '2.50', '379500.00', '330000.00', 'hoan_tat', '2026-06-26 05:56:23'),
+(4, 'DH004', 5, 9, 1, 2, '14.00', '330000.00', '0.00', 'dang_giao_hang', '2026-06-26 05:56:23'),
+(5, 'DH005', 6, 10, 1, 2, '45.00', '264000.00', '240000.00', 'dang_giao_hang', '2026-06-26 05:56:23'),
+(6, 'DH006', 7, 11, 1, 2, '1.20', '330000.00', '0.00', 'dang_van_chuyen', '2026-06-26 05:56:23'),
+(7, 'DH007', 8, 4, 2, 1, '6.80', '315000.00', '300000.00', 'dang_giao_hang', '2026-06-26 05:56:23'),
+(8, 'DH008', 9, 5, 2, 1, '32.00', '264000.00', '0.00', 'cho_tiep_nhan', '2026-06-26 05:56:23'),
+(9, 'DH009', 10, 6, 2, 1, '0.50', '330000.00', '330000.00', 'hoan_tat', '2026-06-26 05:56:23'),
+(10, 'DH010', 11, 7, 2, 1, '18.50', '315000.00', '0.00', 'dang_giao_hang', '2026-06-26 05:56:23'),
+(11, 'DH011', 13, 12, 1, 2, '60.00', '264000.00', '240000.00', 'dang_giao_hang', '2026-06-26 05:56:23'),
+(12, 'DH012', 14, 15, 2, 1, '3.10', '330000.00', '0.00', 'dang_van_chuyen', '2026-06-26 05:56:23'),
+(13, 'DH013', 15, 13, 1, 2, '8.20', '315000.00', '300000.00', 'da_den_kho_dich', '2026-06-26 05:56:23'),
+(14, 'DH014', 12, 14, 2, 1, '22.00', '264000.00', '0.00', 'cho_tiep_nhan', '2026-06-26 05:56:23'),
+(20, 'DH20260702110148972', 26, 27, NULL, NULL, '1.00', '57000.00', '57000.00', 'dang_giao_hang', '2026-07-02 15:01:48'),
+(21, 'DH20260704034033720', 28, 29, NULL, NULL, '8.00', '59000.00', '50000.00', 'dang_giao_hang', '2026-07-04 07:40:33'),
+(22, 'DH20260705185749180', 31, 32, NULL, NULL, '2.00', '39500.00', '39500.00', 'dang_van_chuyen', '2026-07-05 22:57:49'),
+(23, 'DH20260705192351166', 33, 34, NULL, NULL, '2.00', '43050.00', '0.00', 'hoan_tat', '2026-07-05 23:23:51'),
+(24, 'DH20260705214918797', 37, 38, NULL, NULL, '5.00', '61000.00', '50000.00', 'dang_van_chuyen', '2026-07-06 01:49:18'),
+(25, 'DH20260721053249574', 39, 40, NULL, NULL, '0.20', '24725.00', '0.00', 'da_nhap_kho', '2026-07-21 09:32:48');
 
 -- --------------------------------------------------------
 
@@ -220,7 +241,10 @@ CREATE TABLE `dot_van_chuyen` (
 INSERT INTO `dot_van_chuyen` (`id`, `ma_dot_van_chuyen`, `tuyen_duong_id`, `tai_xe_id`, `xe_van_tai_id`, `trang_thai_dot_van_chuyen`, `ngay_gio_khoi_hanh`) VALUES
 (1, 'DOT_001', 1, 1, 1, 'da_den_kho_nhan', '2026-06-19 07:00:00'),
 (2, 'DOT_002', 1, 2, 1, 'da_den_kho_nhan', '2026-06-26 08:00:00'),
-(3, 'DOT_003', 2, 3, 2, 'dang_di_chuyen', '2026-06-26 11:30:00');
+(3, 'DOT_003', 2, 3, 2, 'dang_di_chuyen', '2026-06-26 11:30:00'),
+(4, 'DOT_20260702110413', 1, 1, 2, 'da_den_kho_nhan', '2026-07-02 22:04:00'),
+(5, 'DOT_20260705193130', 2, 1, 2, 'da_den_kho_nhan', '2026-07-06 06:31:00'),
+(6, 'DOT_20260721053413', 1, 1, 2, 'dang_di_chuyen', '2026-07-21 16:34:00');
 
 -- --------------------------------------------------------
 
@@ -243,11 +267,18 @@ CREATE TABLE `giao_hang_tan_noi` (
 --
 
 INSERT INTO `giao_hang_tan_noi` (`id`, `don_hang_id`, `nguoi_giao_hang_id`, `trang_thai_giao_hang`, `nguoi_nhan_thuc_te`, `anh_minh_chung`, `ngay_gio_giao`) VALUES
-(1, 1, 1, 'dang_giao', NULL, NULL, NULL),
+(1, 1, 1, 'thanh_cong', 'Lê Thị Nhận', '/DATN/uploads/delivery/giao_hang_1_1782482413.jpg', '2026-06-26 16:00:14'),
 (2, 3, 12, 'thanh_cong', 'Vũ Hải Đăng', 'uploads/chung_minh_dh003.jpg', '2026-06-26 10:15:00'),
 (3, 4, 13, 'dang_giao', NULL, NULL, NULL),
 (4, 9, 2, 'thanh_cong', 'Phạm Minh Long', 'uploads/chung_minh_dh009.jpg', '2026-06-26 09:40:00'),
-(5, 10, 3, 'dang_giao', NULL, NULL, NULL);
+(5, 10, 3, 'dang_giao', NULL, NULL, NULL),
+(6, 2, 1, 'dang_giao', NULL, NULL, NULL),
+(7, 5, 1, 'dang_giao', NULL, NULL, NULL),
+(8, 11, 1, 'dang_giao', NULL, NULL, NULL),
+(9, 20, 1, 'dang_giao', NULL, NULL, NULL),
+(10, 7, 1, 'dang_giao', NULL, NULL, NULL),
+(11, 21, 1, 'dang_giao', NULL, NULL, NULL),
+(12, 23, 1, 'thanh_cong', 'Chính chủ', '/uploads/delivery/giao_hang_23_1783294739.jpg', '2026-07-05 19:38:59');
 
 -- --------------------------------------------------------
 
@@ -269,10 +300,12 @@ CREATE TABLE `hanh_trinh_xe` (
 --
 
 INSERT INTO `hanh_trinh_xe` (`id`, `loai_hanh_trinh`, `ma_dinh_danh_luong`, `vi_do_hien_tai`, `kinh_do_hien_tai`, `thoi_gian_ghi_nhan`) VALUES
-(1, 'shipper_giao_khach', 1, 10.25123400, 105.96123400, '2026-06-19 01:34:19'),
-(2, 'trung_chuyen_kho', 3, 10.12456300, 106.12453200, '2026-06-26 06:03:30'),
-(3, 'shipper_giao_khach', 4, 10.25431200, 105.96874300, '2026-06-26 06:03:30'),
-(4, 'shipper_giao_khach', 10, 9.93856200, 106.34213400, '2026-06-26 06:03:30');
+(1, 'shipper_giao_khach', 1, '10.25123400', '105.96123400', '2026-06-19 01:34:19'),
+(2, 'trung_chuyen_kho', 3, '10.12456300', '106.12453200', '2026-06-26 06:03:30'),
+(3, 'shipper_giao_khach', 4, '10.25431200', '105.96874300', '2026-06-26 06:03:30'),
+(4, 'shipper_giao_khach', 10, '9.93856200', '106.34213400', '2026-06-26 06:03:30'),
+(5, 'shipper_giao_khach', 1, '9.92110265', '106.34724553', '2026-07-21 09:14:45'),
+(6, 'trung_chuyen_kho', 6, '9.92115346', '106.34726843', '2026-07-21 09:47:33');
 
 -- --------------------------------------------------------
 
@@ -293,20 +326,26 @@ CREATE TABLE `hoa_don` (
 --
 
 INSERT INTO `hoa_don` (`id`, `don_hang_id`, `so_tien_thu_ho`, `hinh_thuc_thanh_toan`, `trang_thai_thanh_toan`) VALUES
-(1, 1, 0.00, 'qr_code', 'da_thanh_toan'),
-(2, 2, 250000.00, 'tien_mat', 'chua_thanh_toan'),
-(3, 3, 0.00, 'qr_code', 'da_thanh_toan'),
-(4, 4, 1500000.00, 'tien_mat', 'chua_thanh_toan'),
-(5, 5, 0.00, 'qr_code', 'da_thanh_toan'),
-(6, 6, 0.00, 'tien_mat', 'chua_thanh_toan'),
-(7, 7, 0.00, 'qr_code', 'da_thanh_toan'),
-(8, 8, 450000.00, 'tien_mat', 'chua_thanh_toan'),
-(9, 9, 0.00, 'qr_code', 'da_thanh_toan'),
-(10, 10, 600000.00, 'tien_mat', 'chua_thanh_toan'),
-(11, 11, 0.00, 'qr_code', 'da_thanh_toan'),
-(12, 12, 0.00, 'tien_mat', 'chua_thanh_toan'),
-(13, 13, 0.00, 'qr_code', 'da_thanh_toan'),
-(14, 14, 1200000.00, 'tien_mat', 'chua_thanh_toan');
+(1, 1, '0.00', 'qr_code', 'da_thanh_toan'),
+(2, 2, '250000.00', 'tien_mat', 'chua_thanh_toan'),
+(3, 3, '0.00', 'qr_code', 'da_thanh_toan'),
+(4, 4, '1500000.00', 'tien_mat', 'chua_thanh_toan'),
+(5, 5, '0.00', 'qr_code', 'da_thanh_toan'),
+(6, 6, '0.00', 'tien_mat', 'chua_thanh_toan'),
+(7, 7, '0.00', 'qr_code', 'da_thanh_toan'),
+(8, 8, '450000.00', 'tien_mat', 'chua_thanh_toan'),
+(9, 9, '0.00', 'qr_code', 'da_thanh_toan'),
+(10, 10, '600000.00', 'tien_mat', 'chua_thanh_toan'),
+(11, 11, '0.00', 'qr_code', 'da_thanh_toan'),
+(12, 12, '0.00', 'tien_mat', 'chua_thanh_toan'),
+(13, 13, '0.00', 'qr_code', 'da_thanh_toan'),
+(14, 14, '1200000.00', 'tien_mat', 'chua_thanh_toan'),
+(15, 20, '0.00', 'tien_mat', 'da_thanh_toan'),
+(16, 21, '9000.00', 'tien_mat', 'chua_thanh_toan'),
+(17, 22, '0.00', 'tien_mat', 'da_thanh_toan'),
+(18, 23, '43050.00', 'tien_mat', 'chua_thanh_toan'),
+(19, 24, '11000.00', 'tien_mat', 'chua_thanh_toan'),
+(20, 25, '24725.00', 'tien_mat', 'chua_thanh_toan');
 
 -- --------------------------------------------------------
 
@@ -331,9 +370,9 @@ CREATE TABLE `khach_hang` (
 --
 
 INSERT INTO `khach_hang` (`id`, `nguoi_dung_id`, `ho_ten`, `so_dien_thoai`, `so_cccd`, `email`, `dia_chi`, `toa_do_kinh_do`, `toa_do_vi_do`) VALUES
-(1, 6, 'Nguyễn Văn Gửi', '0911222333', '084001002003', 'nguyengui@gmail.com', 'Khóm 4, phường Long Đức, tỉnh Vĩnh Long', 106.34000000, 9.93000000),
-(2, NULL, 'Lê Thị Nhận', '0944555666', '084001002004', 'lenhan@gmail.com', 'Phường Tân Ngãi, tỉnh Vĩnh Long', 105.96000000, 10.25000000),
-(3, 9, 'Cô Nhân Quý', '0773998235', '084201000666', NULL, 'Phường Nguyệt Hóa', NULL, NULL),
+(1, 6, 'Nguyễn Văn Gửi', '0911222333', '084001002003', 'nguyengui@gmail.com', 'Khóm 4, phường Long Đức, tỉnh Vĩnh Long', '106.34000000', '9.93000000'),
+(2, NULL, 'Lê Thị Nhận', '0944555666', '084001002004', 'lenhan@gmail.com', 'Phường Tân Ngãi, tỉnh Vĩnh Long', '105.96000000', '10.25000000'),
+(3, 9, 'Cô Nhân Quý', '0773998235', '084201000666', NULL, 'Khóm 2 Phường Nguyệt Hóa', NULL, NULL),
 (4, NULL, 'Nguyễn Kiều Oanh', '0939111222', '084201000111', 'oanhnguyen@gmail.com', 'Khóm 1, phường Trà Vinh, tỉnh Vĩnh Long', NULL, NULL),
 (5, NULL, 'Trần Thanh Sơn', '0939222333', '084201000222', 'sontran@gmail.com', 'Xã Trà Cú, tỉnh Vĩnh Long\r\n', NULL, NULL),
 (6, NULL, 'Phạm Minh Long', '0939333444', '084201000333', 'longpham@gmail.com', 'Khóm 5, phường Long Đức, tỉnh Vĩnh Long', NULL, NULL),
@@ -345,7 +384,22 @@ INSERT INTO `khach_hang` (`id`, `nguoi_dung_id`, `ho_ten`, `so_dien_thoai`, `so_
 (12, NULL, 'Huỳnh Xuân Hương', '0949111222', '084201000999', 'huonghuynh@gmail.com', 'Xã Hiếu Phụng, tỉnh Vĩnh Long', NULL, NULL),
 (13, NULL, 'Kiều Tam Lý', '0949222333', '084201001111', 'lykieu@gmail.com', 'Phường Duyên Hải, tỉnh Vĩnh Long', NULL, NULL),
 (14, NULL, 'Dương Ngọc Hàn', '0949333444', '084201002222', 'handuong@gmail.com', 'Xã An Bình, tỉnh Vĩnh Long', NULL, NULL),
-(15, NULL, 'Tuyết Nhân Quý', '0949555666', '084201003333', 'quytuyet@gmail.com', 'Xã Song Lộc, tỉnh Vĩnh Long', NULL, NULL);
+(15, NULL, 'Tuyết Nhân Quý', '0949555666', '084201003333', 'quytuyet@gmail.com', 'Xã Song Lộc, tỉnh Vĩnh Long', NULL, NULL),
+(26, NULL, 'Lang Trung Quân', '0909888808', '084188000808', NULL, 'travinh', NULL, NULL),
+(27, NULL, 'Kỳ Nương Tử', '0909444404', '064244000444', NULL, 'vinhlong', NULL, NULL),
+(28, NULL, 'Phạm Anh Tư', '0777444888', '064724000159', NULL, 'Bình Minh, Vĩnh Long', NULL, NULL),
+(29, NULL, 'Võ Minh Duy', '0773888424', '084159222454', NULL, 'Trà Vinh', NULL, NULL),
+(30, 45, 'longho', '0383277120', NULL, NULL, '', NULL, NULL),
+(31, NULL, 'Cô Nhân Quý', '0773998235', '084201000684', NULL, 'Phường Nguyệt Hóa, tỉnh Vĩnh Long', NULL, NULL),
+(32, NULL, 'Tuyết Thiên Nguyệt', '0774225616', '', NULL, 'Phường Long Châu, tỉnh Vĩnh Long', NULL, NULL),
+(33, NULL, 'Võ Ngọc Minh', '0123456789', '084300000159', NULL, 'Xã Bình Minh, tỉnh Vĩnh Long', NULL, NULL),
+(34, NULL, 'Cô Nhân Qúy', '0773998235', '084201000684', NULL, 'Khóm 2 Phường Nguyệt Hóa, tỉnh Vĩnh Long ( Khóm 2 Phường 7 - Trà Vinh cũ )', NULL, NULL),
+(35, 46, 'Nhật Long', '0987557727', NULL, NULL, '', NULL, NULL),
+(36, 47, 'demo', '0245651234', NULL, NULL, '', NULL, NULL),
+(37, NULL, 'Cô Nhân Quý', '0773998235', '', NULL, 'Trà Vinh', NULL, NULL),
+(38, NULL, 'Ngọc Liễu', '0367007511', '', NULL, 'Vĩnh Long', NULL, NULL),
+(39, NULL, 'Cô Nhân Quý', '0773998235', '084201000684', NULL, 'Khóm 2 Phường Nguyệt Hóa, tỉnh Vĩnh Long', NULL, NULL),
+(40, NULL, 'Bích Phụng', '0352016666', '0842304000112', NULL, 'Khóm 1 Phường Trà Vinh, tỉnh Vĩnh Long', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -377,7 +431,44 @@ INSERT INTO `lich_su_trang_thai` (`id`, `don_hang_id`, `trang_thai_moi`, `thoi_g
 (8, 4, 'Đang vận chuyển', '2026-06-26 06:03:51', 'Lê Minh Nguyệt', 'Xếp lên xe tải đợt DOT_002 chạy đi Vĩnh Long'),
 (9, 4, 'Đã đến kho dịch', '2026-06-26 06:03:51', 'Cố Thiên Minh', 'Hạ hàng tại kho đích Vĩnh Long'),
 (10, 4, 'Đang giao hàng', '2026-06-26 06:03:51', 'Phạm Văn Giao', 'Bàn giao cho shipper chặng cuối đi phát'),
-(11, 8, 'Chờ tiếp nhận', '2026-06-26 06:03:51', 'Võ Huyền Trân', 'Khách hàng tạo đơn online qua ứng dụng, chờ nhân viên đến lấy');
+(11, 8, 'Chờ tiếp nhận', '2026-06-26 06:03:51', 'Võ Huyền Trân', 'Khách hàng tạo đơn online qua ứng dụng, chờ nhân viên đến lấy'),
+(12, 1, 'hoan_tat', '2026-06-26 14:00:14', 'Shipper: Phạm Văn Giao', ''),
+(13, 20, 'da_nhap_kho', '2026-07-02 15:01:48', 'Lê Thị Tiếp', 'Tiếp nhận và nhập kho tại quầy'),
+(14, 20, 'dang_giao_hang', '2026-07-02 15:22:46', 'Shipper: Lê Thị Tiếp', ''),
+(15, 20, 'dang_van_chuyen', '2026-07-03 05:04:00', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260702110413'),
+(16, 20, 'da_den_kho_dich', '2026-07-02 15:17:46', 'Tài xế: Nguyễn Văn Tài', 'Đã giao đến kho đích từ đợt DOT_20260702110413'),
+(17, 1, 'dang_van_chuyen', '2026-06-19 14:00:00', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_001'),
+(18, 1, 'da_den_kho_dich', '2026-06-19 14:30:00', 'Tài xế: Nguyễn Văn Tài', 'Đã giao đến kho đích từ đợt DOT_001'),
+(19, 21, 'da_nhap_kho', '2026-07-04 07:40:33', 'Lê Thị Tiếp', 'Tiếp nhận và nhập kho tại quầy'),
+(20, 22, 'da_nhap_kho', '2026-07-05 22:57:49', 'Lê Thị Tiếp', 'Tiếp nhận và nhập kho tại quầy'),
+(21, 23, 'da_nhap_kho', '2026-07-05 23:23:51', 'Lê Thị Tiếp', 'Tiếp nhận và nhập kho tại quầy'),
+(22, 7, 'dang_van_chuyen', '2026-07-05 23:32:04', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260705193130'),
+(23, 21, 'dang_van_chuyen', '2026-07-05 23:32:04', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260705193130'),
+(24, 23, 'dang_van_chuyen', '2026-07-05 23:32:04', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260705193130'),
+(25, 7, 'da_den_kho_dich', '2026-07-05 23:32:40', 'Tài xế: Nguyễn Văn Tài', 'Đã giao đến kho đích từ đợt DOT_20260705193130'),
+(26, 21, 'da_den_kho_dich', '2026-07-05 23:32:40', 'Tài xế: Nguyễn Văn Tài', 'Đã giao đến kho đích từ đợt DOT_20260705193130'),
+(27, 23, 'da_den_kho_dich', '2026-07-05 23:32:40', 'Tài xế: Nguyễn Văn Tài', 'Đã giao đến kho đích từ đợt DOT_20260705193130'),
+(28, 23, 'dang_giao_hang', '2026-07-05 23:36:49', 'Shipper: Phạm Văn Giao', ''),
+(29, 7, 'dang_giao_hang', '2026-07-05 23:37:07', 'Shipper: Phạm Văn Giao', ''),
+(30, 20, 'dang_giao_hang', '2026-07-05 23:37:18', 'Shipper: Phạm Văn Giao', ''),
+(31, 11, 'dang_giao_hang', '2026-07-05 23:37:25', 'Shipper: Phạm Văn Giao', ''),
+(32, 5, 'dang_giao_hang', '2026-07-05 23:37:31', 'Shipper: Phạm Văn Giao', ''),
+(33, 2, 'dang_giao_hang', '2026-07-05 23:37:37', 'Shipper: Phạm Văn Giao', ''),
+(34, 21, 'dang_giao_hang', '2026-07-05 23:38:24', 'Shipper: Phạm Văn Giao', ''),
+(35, 23, 'hoan_tat', '2026-07-05 23:38:59', 'Shipper: Phạm Văn Giao', ''),
+(36, 24, 'da_nhap_kho', '2026-07-06 01:49:18', 'Nguyễn Quản Trị', 'Tiếp nhận và nhập kho tại quầy'),
+(37, 2, 'dang_van_chuyen', '2026-07-03 05:04:00', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260702110413'),
+(38, 2, 'da_den_kho_dich', '2026-07-05 23:32:37', 'Tài xế: Nguyễn Văn Tài', 'Đã giao đến kho đích từ đợt DOT_20260702110413'),
+(39, 2, 'dang_giao_hang', '2026-07-21 09:15:00', 'Shipper: Phạm Văn Giao', ''),
+(40, 5, 'dang_van_chuyen', '2026-06-26 15:00:00', 'Tài xế: Lý Thập Nhất', 'Bắt đầu vận chuyển theo đợt DOT_002'),
+(41, 5, 'da_den_kho_dich', '2026-07-05 23:32:31', 'Tài xế: Lý Thập Nhất', 'Đã giao đến kho đích từ đợt DOT_002'),
+(42, 4, 'dang_van_chuyen', '2026-06-26 15:00:00', 'Tài xế: Lý Thập Nhất', 'Bắt đầu vận chuyển theo đợt DOT_002'),
+(43, 4, 'da_den_kho_dich', '2026-06-26 15:30:00', 'Tài xế: Lý Thập Nhất', 'Đã giao đến kho đích từ đợt DOT_002'),
+(44, 11, 'dang_van_chuyen', '2026-06-26 15:00:00', 'Tài xế: Lý Thập Nhất', 'Bắt đầu vận chuyển theo đợt DOT_002'),
+(45, 11, 'da_den_kho_dich', '2026-07-05 23:32:25', 'Tài xế: Lý Thập Nhất', 'Đã giao đến kho đích từ đợt DOT_002'),
+(46, 25, 'da_nhap_kho', '2026-07-21 09:32:48', 'Lê Thị Tiếp', 'Tiếp nhận và nhập kho tại quầy'),
+(47, 22, 'dang_van_chuyen', '2026-07-21 09:38:07', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260721053413'),
+(48, 24, 'dang_van_chuyen', '2026-07-21 09:38:07', 'Tài xế: Nguyễn Văn Tài', 'Bắt đầu vận chuyển theo đợt DOT_20260721053413');
 
 -- --------------------------------------------------------
 
@@ -397,10 +488,12 @@ CREATE TABLE `loai_hang_hoa` (
 --
 
 INSERT INTO `loai_hang_hoa` (`id`, `ten_loai_hang`, `he_so_phu_thu`, `mo_ta`) VALUES
-(1, 'Hàng phổ thông', 1.00, 'Quần áo, sách vở, đồ gia dụng khô, không yêu cầu bảo quản đặc biệt'),
-(2, 'Hàng thực phẩm / Đồ tươi sống', 1.20, 'Trái cây, đồ ăn, hàng cần vận chuyển nhanh và ưu tiên'),
-(3, 'Hàng cồng kềnh / Khối lượng lớn', 1.30, 'Máy móc, tủ lạnh, linh kiện lớn chiếm nhiều diện tích xe'),
-(4, 'Hàng dễ vỡ / Giá trị cao', 1.50, 'Thiết bị điện tử, đồ thủy tinh, cần bọc lót chống sốc cẩn thận');
+(1, 'Hàng phổ thông', '1.00', 'Quần áo, sách vở, đồ gia dụng khô, không yêu cầu bảo quản đặc biệt'),
+(2, 'Hàng thực phẩm / Đồ tươi sống', '1.05', 'Trái cây, đồ ăn, hàng cần vận chuyển nhanh và ưu tiên'),
+(3, 'Hàng cồng kềnh / Khối lượng lớn', '1.10', 'Máy móc, tủ lạnh, linh kiện lớn chiếm nhiều diện tích xe'),
+(4, 'Hàng dễ vỡ / Giá trị cao', '1.15', 'Thiết bị điện tử, đồ thủy tinh, cần bọc lót chống sốc cẩn thận'),
+(5, 'Hàng dễ vỡ', '1.50', ''),
+(6, 'Hàng hóa thông thường', '1.00', '');
 
 -- --------------------------------------------------------
 
@@ -422,14 +515,14 @@ CREATE TABLE `nguoi_dung` (
 --
 
 INSERT INTO `nguoi_dung` (`id`, `so_dien_thoai`, `mat_khau`, `ho_ten`, `trang_thai`, `ngay_tao`) VALUES
-(1, '0900000001', 'e10adc3949ba59abbe56e057f20f883e', 'Nguyễn Admin', 1, '2026-06-19 01:34:18'),
+(1, '0900000001', 'e10adc3949ba59abbe56e057f20f883e', 'Nguyễn Quản Trị', 1, '2026-06-19 01:34:18'),
 (2, '0900000002', 'e10adc3949ba59abbe56e057f20f883e', 'Lê Thị Tiếp', 1, '2026-06-19 01:34:18'),
 (3, '0900000003', 'e10adc3949ba59abbe56e057f20f883e', 'Trần Văn Điều', 1, '2026-06-19 01:34:18'),
 (4, '0909123456', 'e10adc3949ba59abbe56e057f20f883e', 'Nguyễn Văn Tài', 1, '2026-06-19 01:34:18'),
-(5, '0901112221', 'e10adc3949ba59abbe56e057f20f883e', 'Phạm Văn Giao', 1, '2026-06-19 01:34:18'),
+(5, '0911112222', 'e10adc3949ba59abbe56e057f20f883e', 'Phạm Văn Giao', 1, '2026-06-19 01:34:18'),
 (6, '0911222333', '$2y$10$cJ6PrITAzO7wivD/ZAGkS.XTIxraLreJHMLOOYwRsjXmSFlsqiYLS', 'Nguyễn Văn Gửi', 1, '2026-06-19 03:06:59'),
 (8, '0909000001', '$2y$10$qCXWu2Nqx237dcwu0FOUKelKaGpuKQG/rk99rXFjuv./XK.1KXUe6', 'Trần Quân', 1, '2026-06-22 13:53:14'),
-(9, '0773998235', '$2y$10$Z1699xbRdLve9O8KcSlvjuY83nYFqbCqI4417O7jv6b9cdJhnjotm', 'Cô Nhân Quý', 1, '2026-06-23 07:33:12'),
+(9, '0773998235', '$2y$10$7obf4jcvFm0aJ6uzhYoI8uO1NPBpue4eFuJoZkLxIlE/.rhRLPDcG', 'Cô Nhân Quý', 1, '2026-06-23 07:33:12'),
 (11, '0909000002', 'e10adc3949ba59abbe56e057f20f883e', 'Trần Văn Nhận', 1, '2026-06-26 05:33:22'),
 (12, '0909000003', 'e10adc3949ba59abbe56e057f20f883e', 'Võ Huyền Trân', 1, '2026-06-26 05:33:22'),
 (13, '0909000004', 'e10adc3949ba59abbe56e057f20f883e', 'Lê Minh Nguyệt', 1, '2026-06-26 05:34:59'),
@@ -463,7 +556,10 @@ INSERT INTO `nguoi_dung` (`id`, `so_dien_thoai`, `mat_khau`, `ho_ten`, `trang_th
 (41, '0901000016', 'e10adc3949ba59abbe56e057f20f883e', 'Phan Thanh Liên', 1, '2026-06-26 05:35:31'),
 (42, '0901000017', 'e10adc3949ba59abbe56e057f20f883e', 'Huỳnh Kim Vũ', 1, '2026-06-26 05:35:31'),
 (43, '0901000018', 'e10adc3949ba59abbe56e057f20f883e', 'Trương Thiển Nguyệt', 1, '2026-06-26 05:35:31'),
-(44, '0901000019', 'e10adc3949ba59abbe56e057f20f883e', 'Lưu Bích Vũ', 1, '2026-06-26 05:35:31');
+(44, '0901000019', 'e10adc3949ba59abbe56e057f20f883e', 'Lưu Bích Vũ', 1, '2026-06-26 05:35:31'),
+(45, '0383277120', '$2y$10$tzRmZ7OAT9uxmhf22p.b..CLRqlh8rCKdM8e8hcYkSzZSbTmqkayq', 'longho', 1, '2026-07-04 08:30:56'),
+(46, '0987557727', '$2y$10$0TTjXSvuXlVNlOgAOguq8ufeIQvG2MVLsf5gHPGWWwV4CdehnBNFu', 'Nhật Long', 1, '2026-07-06 01:04:09'),
+(47, '0245651234', '$2y$10$ojjSkgjd1yrv5b.YyNEmleec.Yy13nwcN9/3FxxHawSbugGuST3ZW', 'demo', 1, '2026-07-06 01:43:22');
 
 -- --------------------------------------------------------
 
@@ -594,8 +690,8 @@ CREATE TABLE `tuyen_duong` (
 --
 
 INSERT INTO `tuyen_duong` (`id`, `chi_nhanh_di_id`, `chi_nhanh_den_id`, `khoang_cach_km`, `thgian_vanchuyen_uoctinh`) VALUES
-(1, 1, 2, 60.00, 90),
-(2, 2, 1, 60.00, 90);
+(1, 1, 2, '60.00', 90),
+(2, 2, 1, '60.00', 90);
 
 -- --------------------------------------------------------
 
@@ -641,7 +737,6 @@ INSERT INTO `vai_tro_nguoi_dung` (`id`, `nguoi_dung_id`, `vai_tro_id`) VALUES
 (2, 2, 2),
 (3, 3, 3),
 (4, 4, 4),
-(5, 5, 5),
 (7, 11, 2),
 (8, 12, 2),
 (9, 13, 3),
@@ -676,7 +771,8 @@ INSERT INTO `vai_tro_nguoi_dung` (`id`, `nguoi_dung_id`, `vai_tro_id`) VALUES
 (38, 42, 5),
 (39, 43, 5),
 (40, 44, 5),
-(41, 8, 1);
+(41, 8, 1),
+(42, 5, 5);
 
 -- --------------------------------------------------------
 
@@ -693,6 +789,15 @@ CREATE TABLE `xac_minh_otp` (
   `trang_thai` tinyint(4) DEFAULT 0 COMMENT '0: Chua su dung, 1: Da xac minh, 2: Het han',
   `thoi_gian_tao` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `xac_minh_otp`
+--
+
+INSERT INTO `xac_minh_otp` (`id`, `so_dien_thoai`, `ma_otp`, `loai_hanh_dong`, `thoi_gian_het_han`, `trang_thai`, `thoi_gian_tao`) VALUES
+(1, '0773998235', '733709', 'khoi_phuc_mat_khau', '2026-07-03 05:45:42', 1, '2026-07-03 09:40:42'),
+(2, '0383277120', '757035', 'khoi_phuc_mat_khau', '2026-07-04 04:36:05', 2, '2026-07-04 08:31:04'),
+(3, '0383277120', '925243', 'khoi_phuc_mat_khau', '2026-07-04 04:39:15', 1, '2026-07-04 08:34:15');
 
 -- --------------------------------------------------------
 
@@ -713,13 +818,13 @@ CREATE TABLE `xe_van_tai` (
 --
 
 INSERT INTO `xe_van_tai` (`id`, `bien_so_xe`, `trong_tai_toi_da_kg`, `loai_xe`, `trang_thai_hoat_dong`) VALUES
-(1, '84C-123.45', 1500.00, 'Xe tải nhỏ', 1),
-(2, '84A-999.99', 500.00, 'Xe tải nhỏ', 1),
-(3, '64C-002.22', 3500.00, 'Xe tải trung', 1),
-(4, '64C-003.33', 3500.00, 'Xe tải trung', 1),
-(5, '84C-004.44', 2500.00, 'Xe tải nhỏ', 1),
-(6, '84C-005.55', 5000.00, 'Xe tải trung', 1),
-(7, '84C-006.66', 2000.00, 'Xe tải nhỏ', 1);
+(1, '84C-123.45', '1500.00', 'Xe tải nhỏ', 1),
+(2, '84A-999.99', '500.00', 'Xe tải nhỏ', 1),
+(3, '64C-002.22', '3500.00', 'Xe tải trung', 1),
+(4, '64C-003.33', '3500.00', 'Xe tải trung', 1),
+(5, '84C-004.44', '2500.00', 'Xe tải nhỏ', 1),
+(6, '84C-005.55', '5000.00', 'Xe tải trung', 1),
+(7, '84C-006.66', '2000.00', 'Xe tải nhỏ', 1);
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -927,67 +1032,67 @@ ALTER TABLE `chi_nhanh`
 -- AUTO_INCREMENT cho bảng `chi_tiet_dot_van_chuyen`
 --
 ALTER TABLE `chi_tiet_dot_van_chuyen`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT cho bảng `chi_tiet_hang_hoa`
 --
 ALTER TABLE `chi_tiet_hang_hoa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT cho bảng `don_hang`
 --
 ALTER TABLE `don_hang`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT cho bảng `dot_van_chuyen`
 --
 ALTER TABLE `dot_van_chuyen`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT cho bảng `giao_hang_tan_noi`
 --
 ALTER TABLE `giao_hang_tan_noi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT cho bảng `hanh_trinh_xe`
 --
 ALTER TABLE `hanh_trinh_xe`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT cho bảng `hoa_don`
 --
 ALTER TABLE `hoa_don`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT cho bảng `khach_hang`
 --
 ALTER TABLE `khach_hang`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT cho bảng `lich_su_trang_thai`
 --
 ALTER TABLE `lich_su_trang_thai`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
 
 --
 -- AUTO_INCREMENT cho bảng `loai_hang_hoa`
 --
 ALTER TABLE `loai_hang_hoa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT cho bảng `nguoi_dung`
 --
 ALTER TABLE `nguoi_dung`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT cho bảng `nguoi_giao_hang`
@@ -1029,13 +1134,13 @@ ALTER TABLE `vai_tro`
 -- AUTO_INCREMENT cho bảng `vai_tro_nguoi_dung`
 --
 ALTER TABLE `vai_tro_nguoi_dung`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=42;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT cho bảng `xac_minh_otp`
 --
 ALTER TABLE `xac_minh_otp`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT cho bảng `xe_van_tai`

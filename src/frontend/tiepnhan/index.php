@@ -3,15 +3,15 @@ require_once __DIR__ . '/../../backend/config/cauhinh.php';
 require_once __DIR__ . '/../../backend/core/helpers.php';
 requireRole('nhan_vien_tiep_nhan');
 $pageTitle = 'Nhân viên Tiếp nhận';
-$moduleCSS = '/DATN/frontend/assets/css/tiepnhan.css';
-$moduleJS  = '/DATN/frontend/assets/js/tiepnhan.js';
+$moduleCSS = APP_BASE_URL . '/frontend/assets/css/tiepnhan.css';
+$moduleJS  = APP_BASE_URL . '/frontend/assets/js/tiepnhan.js';
 include __DIR__ . '/../includes/header.php';
 ?>
 <div class="container">
     <div class="header">
         <div>
             <h1>📬 Tiếp nhận & Nhập liệu đơn hàng</h1>
-            <p>Màn hình này chỉ phục vụ một nhiệm vụ duy nhất: ghi nhận thông tin đơn hàng thật nhanh để giải phóng khách đang chờ tại quầy. Nhân viên chỉ cần nhập 3 khối dữ liệu, hệ thống tự tính phí dự kiến và xử lý đúng luồng thanh toán trả trước hoặc người nhận trả tiền.</p>
+            <p>Màn hình này phục vụ việc ghi nhận thông tin đơn hàng tại quầy. Hệ thống tự động tính khối lượng quy đổi từ kích thước, phân loại hàng cồng kềnh, cập nhật phí dự kiến và xử lý luồng thanh toán.</p>
             <div class="user-meta">
                 <span><strong>Họ tên:</strong> <?php echo htmlspecialchars($_SESSION['ho_ten']); ?></span>
                 <span><strong>SĐT:</strong> <?php echo htmlspecialchars($_SESSION['so_dien_thoai'] ?? ''); ?></span>
@@ -21,7 +21,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php endif; ?>
             </div>
         </div>
-        <a href="/DATN/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
+        <a href="<?php echo APP_BASE_URL; ?>/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
     </div>
 
     <!-- Tab Navigation -->
@@ -113,7 +113,13 @@ include __DIR__ . '/../includes/header.php';
                             <div class="form-group"><label for="receiverPhone">Số điện thoại</label><input type="tel" id="receiverPhone" name="receiver_phone" required placeholder="09xxxxxxxx"></div>
                             <div class="form-group"><label for="receiverEmail">Email</label><input type="email" id="receiverEmail" name="receiver_email" placeholder="email@example.com"></div>
                             <div class="form-group"><label for="receiverCCCD">CCCD/CMND</label><input type="text" id="receiverCCCD" name="receiver_cccd" placeholder="Không bắt buộc"></div>
-                            <div class="form-group full"><label for="receiverAddress">Địa chỉ nhận</label><textarea id="receiverAddress" name="receiver_address" required placeholder="Nhập địa chỉ chi tiết của người nhận"></textarea></div>
+                            <div class="form-group full">
+                                <label for="receiverBranchSelect">🏢 Chi nhánh đến (Thuật toán gom hàng)</label>
+                                <select id="receiverBranchSelect" name="chi_nhanh_nhan_id">
+                                    <option value="">-- Chọn chi nhánh đến --</option>
+                                </select>
+                            </div>
+                            <div class="form-group full"><label for="receiverAddress">Địa chỉ nhận chi tiết</label><textarea id="receiverAddress" name="receiver_address" required placeholder="Nhập địa chỉ chi tiết của người nhận"></textarea></div>
                         </div>
                     </div>
                     <div class="section-block">
@@ -121,9 +127,43 @@ include __DIR__ . '/../includes/header.php';
                         <div class="form-grid">
                             <div class="form-group"><label for="productName">Tên hàng</label><input type="text" id="productName" name="ten_hang_hoa" required placeholder="Ví dụ: Hồ sơ, quần áo, điện tử..."></div>
                             <div class="form-group">
-                                <label for="weight">Khối lượng (kg)</label>
+                                <label for="weight">Khối lượng thực tế (kg)</label>
                                 <input type="number" id="weight" name="khoi_luong_kg" min="0.1" step="0.1" required placeholder="Ví dụ: 2.5">
+                            </div>
+                            <div class="form-group">
+                                <label for="dimLength">Chiều dài (cm)</label>
+                                <input type="number" id="dimLength" name="chieu_dai_cm" min="0" step="0.5" placeholder="Ví dụ: 30">
+                            </div>
+                            <div class="form-group">
+                                <label for="dimWidth">Chiều rộng (cm)</label>
+                                <input type="number" id="dimWidth" name="chieu_rong_cm" min="0" step="0.5" placeholder="Ví dụ: 20">
+                            </div>
+                            <div class="form-group">
+                                <label for="dimHeight">Chiều cao (cm)</label>
+                                <input type="number" id="dimHeight" name="chieu_cao_cm" min="0" step="0.5" placeholder="Ví dụ: 15">
+                            </div>
+                            <div class="form-group">
+                                <label for="distanceKm">Số km vận chuyển</label>
+                                <input type="number" id="distanceKm" name="so_km" min="0" step="0.1" required placeholder="Ví dụ: 5.0">
                                 <div class="inline-note">Phí dự kiến sẽ tự động cập nhật theo bảng giá.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="goodsTypeSelect">Loại hàng</label>
+                                <select id="goodsTypeSelect" name="loai_hang_id" required>
+                                    <option value="">-- Chọn loại hàng --</option>
+                                </select>
+                            </div>
+                            <div class="form-group full" style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                                <div style="font-size: 0.9rem; font-weight: 600; color: #334155; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>📐 Quy đổi kích thước & Thể tích:</span>
+                                    <span id="bulkyBadge" style="display: none; background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; border: 1px solid #f59e0b;">📦 Hàng cồng kềnh (Tự động phân loại)</span>
+                                </div>
+                                <div style="font-size: 0.85rem; color: #64748b; margin-top: 6px;">
+                                    Thể tích: <strong id="calcVolume">0</strong> cm³ | Khối lượng quy đổi ((D×R×C)/6000): <strong id="calcVolWeight">0</strong> kg
+                                </div>
+                                <div style="font-size: 0.85rem; color: #1e40af; font-weight: 600; margin-top: 4px;">
+                                    👉 Khối lượng tính cước: <strong id="chargedWeightDisplay">0 kg</strong>
+                                </div>
                             </div>
                             <div class="form-group full"><label for="notes">Ghi chú</label><textarea id="notes" name="ghi_chu" placeholder="Ghi chú thêm về tình trạng hàng hóa..."></textarea></div>
                         </div>

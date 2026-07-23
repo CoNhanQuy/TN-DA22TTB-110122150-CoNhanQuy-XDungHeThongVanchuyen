@@ -175,3 +175,67 @@ table tbody tr:hover { background: #f8fafc; }
     .tracking-input { flex-direction: column; }
     .tracking-input input { min-width: 0; width: 100%; }
 }
+
+/* ═══════════════════════════════════════
+   GPS TRACKING BAR
+═══════════════════════════════════════ */
+.gps-tracking-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: #1e293b;
+    color: #94a3b8;
+    border-radius: var(--radius);
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.82rem;
+    transition: background 0.3s, color 0.3s;
+    flex-wrap: wrap;
+}
+.gps-tracking-bar.gps-bar-active {
+    background: linear-gradient(135deg, #052e16, #14532d);
+    color: #bbf7d0;
+}
+.gps-tracking-bar.gps-bar-error {
+    background: linear-gradient(135deg, #450a0a, #7f1d1d);
+    color: #fecaca;
+}
+.gps-tracking-bar.gps-bar-warn {
+    background: linear-gradient(135deg, #431407, #78350f);
+    color: #fed7aa;
+}
+.gps-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+.gps-bar-icon { font-size: 1.4rem; flex-shrink: 0; }
+.gps-bar-title { font-weight: 700; font-size: 0.85rem; color: #e2e8f0; }
+.gps-bar-status {
+    font-size: 0.78rem;
+    color: inherit;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 380px;
+}
+.gps-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+.gps-coords {
+    font-size: 0.75rem;
+    font-family: 'Courier New', monospace;
+    color: #64748b;
+    letter-spacing: .02em;
+}
+.gps-tracking-bar.gps-bar-active .gps-coords { color: #4ade80; }
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+    color: #fff !important;
+}

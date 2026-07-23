@@ -3,7 +3,7 @@
  * Route group: /api/thongke/
  * Thống kê, báo giá, loại hàng hóa — gọi ThongKeController
  */
-require_once __DIR__ . '/../../controllers/ThongKeController.php';
+require_once __DIR__ . '/../../controllers/thongkecontroller.php';
 
 $ctrl = new ThongKeController($conn);
 
@@ -19,8 +19,10 @@ switch ($action) {
         break;
 
     case 'quote':
-        $weight = (float)($_GET['weight'] ?? 0);
-        $result = $ctrl->getQuote($weight);
+        $weight     = (float)($_GET['weight'] ?? 0);
+        $km         = (float)($_GET['km'] ?? 0);
+        $loaiHangId = (int)($_GET['loai_hang_id'] ?? 0);
+        $result = $ctrl->getQuote($weight, $km, $loaiHangId);
         response($result['success'], $result['data'] ?? null, $result['message'] ?? '');
         break;
 

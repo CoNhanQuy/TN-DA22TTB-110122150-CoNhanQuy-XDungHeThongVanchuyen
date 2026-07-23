@@ -27,12 +27,14 @@ window.onclick = function(event) {
 
 async function loadShipments() {
     try {
-        const res = await apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=my_shipments`);
+        const baseUrl = getApiBase();
+        const res = await apiFetch(`${baseUrl}/backend/api/index.php?action=my_shipments`);
         const data = await res.json();
         const tbody = document.getElementById('shipmentsList');
+        if (!tbody) return;
         
-        if (!data.success || data.data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">Bạn chưa được phân công chuyến xe nào.</td></tr>';
+        if (!data.success || !Array.isArray(data.data) || data.data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">' + (data.message || 'Bạn chưa được phân công chuyến xe nào.') + '</td></tr>';
             return;
         }
 
@@ -55,7 +57,10 @@ async function loadShipments() {
         populateIncidentShipmentDropdown();
     } catch (error) {
         console.error('Lỗi tải chuyến xe:', error);
-        document.getElementById('shipmentsList').innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Lỗi tải dữ liệu.</td></tr>';
+        const tbody = document.getElementById('shipmentsList');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: red;">Lỗi tải dữ liệu. Vui lòng thử lại.</td></tr>';
+        }
     }
 }
 
@@ -73,7 +78,7 @@ function populateIncidentShipmentDropdown() {
     });
 }
 
-document.getElementById('statusForm').addEventListener('submit', async function(e) {
+document.getElementById('statusForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('btnUpdateStatus');
     btn.disabled = true;
@@ -87,7 +92,8 @@ document.getElementById('statusForm').addEventListener('submit', async function(
     formData.append('trang_thai', status);
 
     try {
-        const res = await apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=update_shipment_status`, {
+        const baseUrl = getApiBase();
+        const res = await apiFetch(`${baseUrl}/backend/api/index.php?action=update_shipment_status`, {
             method: 'POST',
             body: formData
         });
@@ -98,7 +104,11 @@ document.getElementById('statusForm').addEventListener('submit', async function(
             closeStatusModal();
             loadShipments();
         } else {
-            alert('✗ Lỗi: ' + data.message);
+            let errMsg = '✗ Lỗi: ' + data.message;
+            if (data.data) {
+                errMsg += '\n\n[Debug] ' + JSON.stringify(data.data, null, 2);
+            }
+            alert(errMsg);
         }
     } catch (error) {
         alert('✗ Lỗi kết nối máy chủ');
@@ -109,7 +119,7 @@ document.getElementById('statusForm').addEventListener('submit', async function(
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+function initTaixePage() {
     loadShipments();
 
     const form = document.getElementById('incidentForm');
@@ -130,7 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fd.append('muc_do',     document.getElementById('incidentSeverity').value);
 
             try {
-                const res = await apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=driver_report_incident`, {
+                const baseUrl = getApiBase();
+                const res = await apiFetch(`${baseUrl}/backend/api/index.php?action=driver_report_incident`, {
                     method: 'POST',
                     body: fd
                 });
@@ -154,4 +165,113 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTaixePage);
+} else {
+    initTaixePage();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GPS TRACKING — Tài xế
+// ═══════════════════════════════════════════════════════════════
+
+let _driverGpsWatchId  = null;
+let _driverGpsOn       = false;
+let _driverLastPushMs  = 0;
+const GPS_PUSH_INTERVAL = 30000; // 30 giây
+
+function toggleDriverGps() {
+    if (_driverGpsOn) {
+        _stopDriverGps();
+    } else {
+        _startDriverGps();
+    }
+}
+
+function _startDriverGps() {
+    if (!navigator.geolocation) {
+        _setGpsBarStatus('❌ Trình duyệt không hỗ trợ GPS', 'error');
+        return;
+    }
+
+    _setGpsBarStatus('⏳ Đang lấy vị trí...', 'loading');
+    const btn = document.getElementById('btnToggleGps');
+    if (btn) { btn.textContent = '⏹ Tắt GPS'; btn.classList.add('btn-danger'); }
+
+    _driverGpsOn = true;
+
+    _driverGpsWatchId = navigator.geolocation.watchPosition(
+        _onDriverPosition,
+        _onDriverGpsError,
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+}
+
+function _stopDriverGps() {
+    if (_driverGpsWatchId !== null) {
+        navigator.geolocation.clearWatch(_driverGpsWatchId);
+        _driverGpsWatchId = null;
+    }
+    _driverGpsOn = false;
+    const btn = document.getElementById('btnToggleGps');
+    if (btn) { btn.textContent = '📍 Bật GPS'; btn.classList.remove('btn-danger'); }
+    _setGpsBarStatus('GPS đã tắt', 'idle');
+    const coordEl = document.getElementById('gpsCoords');
+    if (coordEl) coordEl.textContent = '';
+}
+
+async function _onDriverPosition(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const acc = Math.round(pos.coords.accuracy);
+
+    // Update UI coords
+    const coordEl = document.getElementById('gpsCoords');
+    if (coordEl) coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)} (±${acc}m)`;
+
+    const now = Date.now();
+    if (now - _driverLastPushMs < GPS_PUSH_INTERVAL) return; // throttle
+    _driverLastPushMs = now;
+
+    try {
+        const fd = new FormData();
+        fd.append('vi_do',   lat);
+        fd.append('kinh_do', lng);
+        const baseUrl = getApiBase();
+        const res  = await apiFetch(`${baseUrl}/backend/api/index.php?action=gps_update`, {
+            method: 'POST', body: fd
+        });
+        const data = await res.json();
+        if (data.success) {
+            _setGpsBarStatus(`✅ Đã gửi vị trí — ${new Date().toLocaleTimeString('vi-VN')}`, 'active');
+        } else {
+            _setGpsBarStatus(`⚠️ ${data.message || 'Lỗi gửi vị trí'}`, 'warn');
+        }
+    } catch (err) {
+        _setGpsBarStatus('❌ Lỗi kết nối khi gửi vị trí', 'error');
+        console.error('GPS push error:', err);
+    }
+}
+
+function _onDriverGpsError(err) {
+    const msgs = {
+        1: 'Bạn đã từ chối quyền truy cập vị trí',
+        2: 'Không thể xác định vị trí',
+        3: 'Hết thời gian lấy vị trí',
+    };
+    _setGpsBarStatus('❌ ' + (msgs[err.code] || 'Lỗi GPS'), 'error');
+}
+
+function _setGpsBarStatus(msg, state) {
+    const el  = document.getElementById('gpsBarStatus');
+    const bar = document.getElementById('gpsTrackingBar');
+    if (el)  el.textContent = msg;
+    if (bar) {
+        bar.className = 'gps-tracking-bar';
+        if (state === 'active')  bar.classList.add('gps-bar-active');
+        if (state === 'error')   bar.classList.add('gps-bar-error');
+        if (state === 'warn')    bar.classList.add('gps-bar-warn');
+    }
+}

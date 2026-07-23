@@ -41,7 +41,7 @@ function onRouteChange() {
         return;
     }
 
-    apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=orders_by_destination&tuyen_id=${tuyenId}`)
+    apiFetch(`${getApiBase()}/backend/api/index.php?action=orders_by_destination&tuyen_id=${tuyenId}`)
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
@@ -150,7 +150,7 @@ function getSelectedOrderIds() {
 
 // ===================== LOAD DỮ LIỆU =====================
 function loadPendingOrders() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=pending_orders`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=pending_orders`)
         .then(r => {
             if (!r.ok) throw new Error('HTTP ' + r.status);
             return r.text(); // Lấy text trước để debug nếu JSON lỗi
@@ -176,7 +176,7 @@ function loadPendingOrders() {
                         <td>${order.receiver_name || 'N/A'}</td>
                         <td>${parseFloat(order.khoi_luong_kg || 0).toFixed(1)} kg</td>
                         <td>${order.receiver_address || 'N/A'}</td>
-                        <td><span class="status-badge status-waiting">${order.trang_thai}</span></td>
+                        <td><span class="status-badge status-waiting">${escapeHtml(mapStatusLabel(order.trang_thai))}</span></td>
                         <td><button class="btn btn-primary btn-small" onclick="quickSelectOrder('${order.id}')">+ Chọn</button></td>
                     </tr>
                 `).join('');
@@ -203,7 +203,7 @@ function quickSelectOrder(orderId) {
 }
 
 function loadShipments() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=shipments`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=shipments`)
         .then(r => r.json())
         .then(data => {
             const tbody = document.getElementById('shipmentsList');
@@ -269,7 +269,7 @@ function deferShipment(dotId, maDot) {
     formData.append('action', 'defer_expired_shipments');
     formData.append('dot_id', dotId);
 
-    apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php`, { method: 'POST', body: formData })
+    apiFetch(`${getApiBase()}/backend/api/index.php`, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -286,7 +286,7 @@ function deferShipment(dotId, maDot) {
 
 // ===================== CHI TIẾT ĐỢT =====================
 function showShipmentDetail(shipmentId) {
-    apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=shipment_details&id=${shipmentId}`)
+    apiFetch(`${getApiBase()}/backend/api/index.php?action=shipment_details&id=${shipmentId}`)
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
@@ -333,7 +333,7 @@ function closeDetailModal() {
 
 // ===================== LOAD DRIVERS / VEHICLES / ROUTES =====================
 function loadDrivers() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=available_drivers`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=available_drivers`)
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
@@ -351,7 +351,7 @@ function loadDrivers() {
 }
 
 function loadVehicles() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=available_vehicles`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=available_vehicles`)
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
@@ -369,7 +369,7 @@ function loadVehicles() {
 }
 
 function loadRoutes() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=routes`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=routes`)
         .then(r => r.json())
         .then(data => {
             const sel = document.getElementById('routeSelect');
@@ -394,7 +394,7 @@ function loadRoutes() {
 }
 
 function loadStats() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=dispatcher_stats`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=dispatcher_stats`)
         .then(r => r.json())
         .then(data => {
             if (data.success && data.data) {
@@ -459,7 +459,7 @@ document.getElementById('assignForm').addEventListener('submit', function(e) {
     formData.append('ghi_chu', notes);
     selectedOrders.forEach(id => formData.append('don_hang_ids[]', id));
 
-    apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php`, { method: 'POST', body: formData })
+    apiFetch(`${getApiBase()}/backend/api/index.php`, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -482,7 +482,7 @@ document.getElementById('assignForm').addEventListener('submit', function(e) {
 let allShipperOrders = [];
 
 function loadShippers() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=available_shippers`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=available_shippers`)
         .then(r => r.json())
         .then(data => {
             console.log('available_shippers response:', data);
@@ -498,7 +498,7 @@ function loadShippers() {
 }
 
 function loadShipperOrders() {
-    return apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php?action=orders_for_shipper`)
+    return apiFetch(`${getApiBase()}/backend/api/index.php?action=orders_for_shipper`)
         .then(r => r.json())
         .then(data => {
             const tbody = document.getElementById('shipperOrdersList');
@@ -515,7 +515,7 @@ function loadShipperOrders() {
                                 <input type="checkbox" class="shipper-order-checkbox" value="${order.id}">
                             </td>
                             <td><strong>${order.ma_don}</strong></td>
-                            <td><span class="status-badge ${order.trang_thai === 'dang_van_chuyen' ? 'status-assigned' : 'status-waiting'}">${order.trang_thai === 'dang_van_chuyen' ? 'Đang vận chuyển' : 'Đã nhập kho'}</span></td>
+                            <td><span class="status-badge status-done">Đã đến kho đích</span></td>
                             <td>${order.receiver_name || 'N/A'}</td>
                             <td style="max-width:250px; word-break:break-word;">${order.receiver_address || 'N/A'}</td>
                             <td>${order.ten_hang_hoa || 'N/A'}</td>
@@ -563,7 +563,7 @@ function assignSelectedToShipper() {
     formData.append('ngh_id', shipperId);
     orderIds.forEach(id => formData.append('don_hang_ids[]', id));
 
-    apiFetch(`${window.API_BASE || '/DATN'}/backend/api/index.php`, {
+    apiFetch(`${getApiBase()}/backend/api/index.php`, {
         method: 'POST',
         body: formData
     })

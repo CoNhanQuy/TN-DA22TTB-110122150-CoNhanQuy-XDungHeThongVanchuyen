@@ -6,5 +6,5 @@
 require_once __DIR__ . '/../../config/cauhinh.php';
 
 session_destroy();
-header('Location: /DATN/frontend/trangchu/index.php');
+header('Location: ' . APP_BASE_URL . '/index.php');
 exit();

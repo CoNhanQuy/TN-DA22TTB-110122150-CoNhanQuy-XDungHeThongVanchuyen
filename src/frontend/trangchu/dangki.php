@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="../assets/css/styles.css">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -209,7 +209,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($success): ?>
         <div class="alert alert-success">✓ <?php echo htmlspecialchars($success); ?></div>
         <div style="text-align:center; margin-top:16px;">
-            <a href="index.php" style="color:#667eea; font-weight:600; text-decoration:none;">← Quay lại trang đăng nhập</a>
+            <a href="../../index.php" style="color:#667eea; font-weight:600; text-decoration:none;">← Quay lại trang đăng nhập</a>
         </div>
     <?php else: ?>
 
@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="submit" class="btn-register">📝 Đăng Ký</button>
         </form>
 
-        <div class="login-link">Đã có tài khoản? <a href="index.php">Đăng nhập ngay</a></div>
+        <div class="login-link">Đã có tài khoản? <a href="../../index.php">Đăng nhập ngay</a></div>
 
     <?php endif; ?>
 </div>

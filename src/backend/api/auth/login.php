@@ -3,7 +3,7 @@
  * Route: POST /api/auth/login
  * Gọi AuthController->login()
  */
-require_once __DIR__ . '/../../controllers/AuthController.php';
+require_once __DIR__ . '/../../controllers/authcontroller.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     response(false, null, 'Phương thức không hợp lệ');
@@ -25,16 +25,16 @@ if ($vaiTro === false) {
 
 // Redirect URL theo vai trò
 $redirectMap = [
-    'admin'                  => '/DATN/frontend/quantri/',
-    'nhan_vien_tiep_nhan'    => '/DATN/frontend/tiepnhan/',
-    'nhan_vien_dieu_phoi'    => '/DATN/frontend/dieuphoi/',
-    'tai_xe'                 => '/DATN/frontend/taixe/',
-    'shipper'                => '/DATN/frontend/giaohang/',
-    'khach_hang'             => '/DATN/frontend/khachhang/',
+    'admin'                  => APP_BASE_URL . '/frontend/quantri/',
+    'nhan_vien_tiep_nhan'    => APP_BASE_URL . '/frontend/tiepnhan/',
+    'nhan_vien_dieu_phoi'    => APP_BASE_URL . '/frontend/dieuphoi/',
+    'tai_xe'                 => APP_BASE_URL . '/frontend/taixe/',
+    'shipper'                => APP_BASE_URL . '/frontend/giaohang/',
+    'khach_hang'             => APP_BASE_URL . '/frontend/khachhang/',
 ];
 
 response(true, [
     'vai_tro'  => $vaiTro,
     'ho_ten'   => $_SESSION['ho_ten'] ?? '',
-    'redirect' => $redirectMap[$vaiTro] ?? '/DATN/frontend/trangchu/',
+    'redirect' => $redirectMap[$vaiTro] ?? (APP_BASE_URL . '/index.php'),
 ], 'Đăng nhập thành công');

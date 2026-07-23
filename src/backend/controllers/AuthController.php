@@ -11,7 +11,7 @@ class AuthController {
     }
 
     /** Đăng nhập — trả về vai_tro nếu thành công, false nếu thất bại */
-    public function login(string $username, string $password): string|false {
+    public function login(string $username, string $password) {
         $stmt = $this->db->prepare(
             "SELECT nd.*, vt.ten_vai_tro as vai_tro
              FROM nguoi_dung nd
@@ -69,20 +69,31 @@ class AuthController {
             return ['success' => false, 'message' => 'Số điện thoại chưa được đăng ký hoặc tài khoản bị khóa'];
         }
 
-        $countRes = $this->db->query(
+        $stmtCount = $this->db->prepare(
             "SELECT COUNT(*) as cnt FROM xac_minh_otp
-             WHERE so_dien_thoai = '$sdt'
+             WHERE so_dien_thoai = ?
                AND loai_hanh_dong = 'khoi_phuc_mat_khau'
                AND thoi_gian_tao >= NOW() - INTERVAL 15 MINUTE"
         );
-        if ((int)$countRes->fetch_assoc()['cnt'] >= 3) {
-            return ['success' => false, 'message' => 'Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau 15 phút'];
+        if ($stmtCount) {
+            $stmtCount->bind_param("s", $sdt);
+            $stmtCount->execute();
+            $countRes = $stmtCount->get_result()->fetch_assoc();
+            $stmtCount->close();
+            if ($countRes && (int)$countRes['cnt'] >= 3) {
+                return ['success' => false, 'message' => 'Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau 15 phút'];
+            }
         }
 
-        $this->db->query(
+        $stmtUpdate = $this->db->prepare(
             "UPDATE xac_minh_otp SET trang_thai = 2
-             WHERE so_dien_thoai = '$sdt' AND loai_hanh_dong = 'khoi_phuc_mat_khau' AND trang_thai = 0"
+             WHERE so_dien_thoai = ? AND loai_hanh_dong = 'khoi_phuc_mat_khau' AND trang_thai = 0"
         );
+        if ($stmtUpdate) {
+            $stmtUpdate->bind_param("s", $sdt);
+            $stmtUpdate->execute();
+            $stmtUpdate->close();
+        }
 
         $otp    = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $hetHan = date('Y-m-d H:i:s', strtotime('+5 minutes'));
@@ -114,7 +125,12 @@ class AuthController {
         if (!$row) return false;
 
         $otpId = (int)$row['id'];
-        $this->db->query("UPDATE xac_minh_otp SET trang_thai = 1 WHERE id = $otpId");
+        $stmtUpdateOtp = $this->db->prepare("UPDATE xac_minh_otp SET trang_thai = 1 WHERE id = ?");
+        if ($stmtUpdateOtp) {
+            $stmtUpdateOtp->bind_param("i", $otpId);
+            $stmtUpdateOtp->execute();
+            $stmtUpdateOtp->close();
+        }
 
         $_SESSION['otp_verified_sdt']  = $sdt;
         $_SESSION['otp_verified_time'] = time();

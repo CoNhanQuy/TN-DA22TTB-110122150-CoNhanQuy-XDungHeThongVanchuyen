@@ -3,8 +3,8 @@ require_once __DIR__ . '/../../backend/config/cauhinh.php';
 require_once __DIR__ . '/../../backend/core/helpers.php';
 requireRole('nhan_vien_dieu_phoi');
 $pageTitle = 'Nhân viên Điều phối';
-$moduleCSS = '/DATN/frontend/assets/css/dieuphoi.css?v=2';
-$moduleJS  = '/DATN/frontend/assets/js/dieuphoi.js';
+$moduleCSS = APP_BASE_URL . '/frontend/assets/css/dieuphoi.css?v=2';
+$moduleJS  = APP_BASE_URL . '/frontend/assets/js/dieuphoi.js';
 include __DIR__ . '/../includes/header.php';
 ?>
 <div class="container">
@@ -20,7 +20,7 @@ include __DIR__ . '/../includes/header.php';
                 <?php endif; ?>
             </div>
         </div>
-        <a href="/DATN/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
+        <a href="<?php echo APP_BASE_URL; ?>/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
     </div>
 
     <!-- Thống kê -->

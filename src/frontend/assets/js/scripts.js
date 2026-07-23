@@ -1,6 +1,10 @@
 // Vận Tải Xanh - Main JavaScript
 // (Di chuyển từ frontend/scripts.js)
 
+function getApiBase() {
+    return (typeof window.API_BASE === 'string') ? window.API_BASE : '';
+}
+
 /**
  * Helper fetch luôn kèm credentials (session cookie).
  * Dùng thay thế fetch() trực tiếp trong toàn bộ dự án.
@@ -45,6 +49,8 @@ function mapStatusLabel(status) {
         case 'cho_tiep_nhan':   return 'Chờ tiếp nhận';
         case 'da_nhap_kho':     return 'Đã nhập kho';
         case 'dang_van_chuyen': return 'Đang vận chuyển';
+        case 'da_den_kho_dich': return 'Đã đến kho đích';
+        case 'dang_giao_hang':  return 'Đang giao hàng';
         case 'da_giao_hang':    return 'Đã giao hàng';
         case 'hoan_tat':        return 'Hoàn tất';
         case 'da_xep_len_xe':   return 'Đã xếp lên xe';
@@ -52,8 +58,14 @@ function mapStatusLabel(status) {
         case 'tra_lai':         return 'Trả lại';
         case 'cho_lay_hang':    return 'Chờ lấy hàng';
         case 'dang_giao':       return 'Đang giao hàng';
-        case 'thanh_cong':      return 'Giao thành công';
-        case 'that_bai':        return 'Giao thất bại';
+        case 'thanh_cong':      return 'Đã giao hàng';
+        case 'that_bai':        return 'Trả lại';
+        case 'da_huy':          return 'Đã hủy';
+        case 'huy':             return 'Đã hủy';
+        case 'dang_xu_ly':      return 'Đang xử lý';
+        case 'dang_phat':       return 'Đang phát';
+        case 'cho_xu_ly':       return 'Chờ xử lý';
+        case 'dang_lay_hang':   return 'Đang lấy hàng';
         default: return status ? String(status) : '';
     }
 }
@@ -85,7 +97,7 @@ async function trackOrder() {
     if (errorDiv) errorDiv.style.display = 'none';
     if (resultDiv) resultDiv.style.display = 'none';
 
-    const btn = document.querySelector('.tracking-input button');
+    const btn = document.querySelector('.tracking-btn') || document.querySelector('.tracking-input button');
     try {
         if (btn) {
             btn.disabled = true;
@@ -97,7 +109,7 @@ async function trackOrder() {
         if (orderPhone) form.append('so_dien_thoai', orderPhone);
         if (orderCCCD)  form.append('so_cccd', orderCCCD);
 
-        const res = await apiFetch((window.API_BASE || '/DATN') + '/backend/api/index.php?action=track', {
+        const res = await apiFetch(getApiBase() + '/backend/api/index.php?action=track', {
             method: 'POST',
             body: form,
         });

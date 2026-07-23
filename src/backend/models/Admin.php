@@ -135,6 +135,22 @@ class Admin {
         return (int)$this->db->insert_id;
     }
 
+    public function updateVehicle(int $id, string $bienSo, float $trongTai, int $trangThai): void {
+        $loaiXe = 'xe_tai_nho';
+        if ($trongTai >= 5000) {
+            $loaiXe = 'xe_tai_lon';
+        } elseif ($trongTai >= 2000) {
+            $loaiXe = 'xe_tai_trung';
+        }
+
+        $stmt = $this->db->prepare(
+            "UPDATE xe_van_tai SET bien_so_xe = ?, trong_tai_toi_da_kg = ?, loai_xe = ?, trang_thai_hoat_dong = ? WHERE id = ?"
+        );
+        $stmt->bind_param("sdsii", $bienSo, $trongTai, $loaiXe, $trangThai, $id);
+        $stmt->execute();
+        $stmt->close();
+    }
+
     public function deleteVehicle(int $id): void {
         $this->db->query("DELETE FROM xe_van_tai WHERE id = $id");
     }
@@ -243,7 +259,7 @@ class Admin {
                 'tu_kg'      => $row['khoi_luong_tu_kg'],
                 'den_kg'     => $row['khoi_luong_den_kg'],
                 'phi_co_ban' => $row['gia_co_ban'],
-                'phi_per_km' => $row['gia_theo_moi_ki_lo_met'],
+                'phi_per_km' => $row['gia_theo_moi_km'],
             ];
         }
         return $data;
@@ -251,7 +267,7 @@ class Admin {
 
     public function createPricing(float $tu, float $den, float $phi, float $pkm): int {
         $stmt = $this->db->prepare(
-            "INSERT INTO bang_gia_cuoc (khoi_luong_tu_kg, khoi_luong_den_kg, gia_co_ban, gia_theo_moi_ki_lo_met)
+            "INSERT INTO bang_gia_cuoc (khoi_luong_tu_kg, khoi_luong_den_kg, gia_co_ban, gia_theo_moi_km)
              VALUES (?, ?, ?, ?)"
         );
         $stmt->bind_param("dddd", $tu, $den, $phi, $pkm);

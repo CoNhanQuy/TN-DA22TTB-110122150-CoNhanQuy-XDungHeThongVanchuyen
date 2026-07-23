@@ -14,6 +14,19 @@
  */
 
 ob_start();
+// Cấu hình báo lỗi: Bật khi chạy Localhost/Ngrok, Tắt khi chạy trên Production (InfinityFree)
+$isLocal = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1', 'localhost:8000']) 
+           || (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'ngrok-free.app') !== false);
+
+if ($isLocal) {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+} else {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    ini_set('log_errors', 1);
+}
+error_reporting(E_ALL);
 header('Content-Type: application/json; charset=utf-8');
 
 // Cho phép ngrok tunnel (bỏ qua ngrok browser warning page)
@@ -26,6 +39,8 @@ $allowedOrigins = [
     'http://127.0.0.1:8000',
     'http://localhost',
     'http://127.0.0.1',
+    'http://nhanquycttvu.infinityfreeapp.com',
+    'https://nhanquycttvu.infinityfreeapp.com',
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (
@@ -50,6 +65,46 @@ $action = $_GET['action'] ?? ($_POST['action'] ?? '');
 
 if (!$action) {
     response(false, null, 'Thiếu tham số action');
+}
+
+if ($action === 'repair_db') {
+    $defaultTypes = [
+        [1, 'Hồ sơ, tài liệu', '', 1.00],
+        [2, 'Thực phẩm khô', '', 1.10],
+        [3, 'Điện tử', '', 1.30],
+        [4, 'Quần áo, giày dép', '', 1.00],
+        [5, 'Hàng dễ vỡ', '', 1.50],
+        [6, 'Hàng hóa thông thường', '', 1.00]
+    ];
+    $inserted = [];
+    foreach ($defaultTypes as $type) {
+        $id    = $type[0];
+        $name  = $type[1];
+        $desc  = $type[2];
+        $coeff = $type[3];
+        
+        $chk = $conn->query("SELECT id FROM loai_hang_hoa WHERE id = $id");
+        if ($chk && $chk->num_rows > 0) {
+            continue;
+        }
+        $stmt = $conn->prepare("INSERT INTO loai_hang_hoa (id, ten_loai_hang, mo_ta, he_so_phu_thu) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("issd", $id, $name, $desc, $coeff);
+        $stmt->execute();
+        $inserted[] = $id;
+    }
+    response(true, ['inserted' => $inserted], "Đã chạy cấu trúc database thành công!");
+}
+
+// Debug: kiểm tra session (chỉ dùng để chẩn đoán, xóa sau)
+if ($action === 'debug_session') {
+    response(true, [
+        'session_id'   => session_id(),
+        'user_id'      => $_SESSION['user_id'] ?? null,
+        'role'         => $_SESSION['role'] ?? null,
+        'ho_ten'       => $_SESSION['ho_ten'] ?? null,
+        'session_keys' => array_keys($_SESSION),
+        'cookie'       => $_COOKIE,
+    ], 'Debug session');
 }
 
 const ROUTE_MAP = [
@@ -107,6 +162,11 @@ const ROUTE_MAP = [
 
     // ── Chi tiết đơn hàng (xuất phiếu) ──────────────────────────
     'order_detail' => 'donhang/index.php',
+
+    // ── GPS Tracking ─────────────────────────────────────────────
+    'gps_locations'     => 'gps/index.php',
+    'gps_update'        => 'gps/index.php',
+    'track_location'    => 'gps/index.php',   // Khách hàng tra cứu vị trí theo mã đơn
 ];
 
 $routeFile = ROUTE_MAP[$action] ?? null;

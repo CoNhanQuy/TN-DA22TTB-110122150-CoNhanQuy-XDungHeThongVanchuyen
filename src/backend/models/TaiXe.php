@@ -115,16 +115,95 @@ class TaiXe {
     }
 
     public function updateShipmentStatus(int $dotId, string $trangThai): bool {
+        // Lấy thông tin tài xế và mã đợt vận chuyển
+        $driverName = 'Tài xế';
+        $maDot = '';
+        $qInfo = $this->db->query(
+            "SELECT nd.ho_ten, dvc.ma_dot_van_chuyen 
+             FROM dot_van_chuyen dvc
+             LEFT JOIN tai_xe tx ON dvc.tai_xe_id = tx.id
+             LEFT JOIN nguoi_dung nd ON tx.nguoi_dung_id = nd.id
+             WHERE dvc.id = $dotId
+             LIMIT 1"
+        );
+        if ($qInfo && $rowInfo = $qInfo->fetch_assoc()) {
+            if (!empty($rowInfo['ho_ten'])) $driverName = $rowInfo['ho_ten'];
+            if (!empty($rowInfo['ma_dot_van_chuyen'])) $maDot = $rowInfo['ma_dot_van_chuyen'];
+        }
+
         $stmt = $this->db->prepare("UPDATE dot_van_chuyen SET trang_thai_dot_van_chuyen = ? WHERE id = ?");
         $stmt->bind_param("si", $trangThai, $dotId);
         if (!$stmt->execute()) return false;
 
+        // Lấy danh sách các đơn hàng trong đợt vận chuyển này
+        $resDon = $this->db->query("SELECT don_hang_id FROM chi_tiet_dot_van_chuyen WHERE dot_van_chuyen_id = $dotId");
+        $donIds = [];
+        if ($resDon) {
+            while ($row = $resDon->fetch_assoc()) {
+                $donIds[] = (int)$row['don_hang_id'];
+            }
+        }
+
+        $driverNameE = $this->db->real_escape_string($driverName);
+        $maDotE = $this->db->real_escape_string($maDot);
+
         if ($trangThai === 'dang_di_chuyen') {
             $this->db->query("UPDATE chi_tiet_dot_van_chuyen SET trang_thai_trong_dot = 'dang_van_chuyen' WHERE dot_van_chuyen_id = $dotId");
-            $this->db->query("UPDATE don_hang dh JOIN chi_tiet_dot_van_chuyen cdvc ON dh.id = cdvc.don_hang_id SET dh.trang_thai_don_hang = 'dang_van_chuyen' WHERE cdvc.dot_van_chuyen_id = $dotId AND dh.trang_thai_don_hang = 'da_nhap_kho'");
+            
+            // Cập nhật trạng thái từng đơn hàng và ghi vào lịch sử
+            foreach ($donIds as $dhId) {
+                $checkDh = $this->db->query("SELECT trang_thai_don_hang FROM don_hang WHERE id = $dhId LIMIT 1");
+                if ($checkDh && $dh = $checkDh->fetch_assoc()) {
+                    $curStatus = $dh['trang_thai_don_hang'];
+                    if ($curStatus === 'da_nhap_kho' || $curStatus === 'dang_van_chuyen') {
+                        if ($curStatus === 'da_nhap_kho') {
+                            $this->db->query("UPDATE don_hang SET trang_thai_don_hang = 'dang_van_chuyen' WHERE id = $dhId");
+                        }
+                        
+                        // Kiểm tra xem đã ghi lịch sử 'dang_van_chuyen' chưa để tránh trùng lặp
+                        $checkLog = $this->db->query("SELECT id FROM lich_su_trang_thai WHERE don_hang_id = $dhId AND trang_thai_moi = 'dang_van_chuyen' LIMIT 1");
+                        if ($checkLog && $checkLog->num_rows === 0) {
+                            $this->db->query(
+                                "INSERT INTO lich_su_trang_thai (don_hang_id, trang_thai_moi, nguoi_thuc_hien, ghi_chu)
+                                 VALUES ($dhId, 'dang_van_chuyen', 'Tài xế: $driverNameE', 'Bắt đầu vận chuyển theo đợt $maDotE')"
+                            );
+                        }
+                    }
+                }
+            }
         } elseif ($trangThai === 'da_den_kho_nhan') {
             $this->db->query("UPDATE chi_tiet_dot_van_chuyen SET trang_thai_trong_dot = 'da_giao_kho_dich' WHERE dot_van_chuyen_id = $dotId");
-            $this->db->query("UPDATE don_hang dh JOIN chi_tiet_dot_van_chuyen cdvc ON dh.id = cdvc.don_hang_id SET dh.trang_thai_don_hang = 'da_den_kho_dich' WHERE cdvc.dot_van_chuyen_id = $dotId");
+            
+            // Cập nhật trạng thái từng đơn hàng và ghi vào lịch sử
+            foreach ($donIds as $dhId) {
+                $checkDh = $this->db->query("SELECT trang_thai_don_hang FROM don_hang WHERE id = $dhId LIMIT 1");
+                if ($checkDh && $dh = $checkDh->fetch_assoc()) {
+                    $curStatus = $dh['trang_thai_don_hang'];
+                    if ($curStatus === 'dang_van_chuyen' || $curStatus === 'da_den_kho_dich') {
+                        if ($curStatus === 'dang_van_chuyen') {
+                            $this->db->query("UPDATE don_hang SET trang_thai_don_hang = 'da_den_kho_dich' WHERE id = $dhId");
+                        }
+                        
+                        // Đảm bảo có log 'dang_van_chuyen' trước
+                        $checkTransitLog = $this->db->query("SELECT id FROM lich_su_trang_thai WHERE don_hang_id = $dhId AND trang_thai_moi = 'dang_van_chuyen' LIMIT 1");
+                        if ($checkTransitLog && $checkTransitLog->num_rows === 0) {
+                            $this->db->query(
+                                "INSERT INTO lich_su_trang_thai (don_hang_id, trang_thai_moi, nguoi_thuc_hien, ghi_chu)
+                                 VALUES ($dhId, 'dang_van_chuyen', 'Tài xế: $driverNameE', 'Bắt đầu vận chuyển theo đợt $maDotE')"
+                            );
+                        }
+                        
+                        // Kiểm tra xem đã ghi lịch sử 'da_den_kho_dich' chưa
+                        $checkLog = $this->db->query("SELECT id FROM lich_su_trang_thai WHERE don_hang_id = $dhId AND trang_thai_moi = 'da_den_kho_dich' LIMIT 1");
+                        if ($checkLog && $checkLog->num_rows === 0) {
+                            $this->db->query(
+                                "INSERT INTO lich_su_trang_thai (don_hang_id, trang_thai_moi, nguoi_thuc_hien, ghi_chu)
+                                 VALUES ($dhId, 'da_den_kho_dich', 'Tài xế: $driverNameE', 'Đã giao đến kho đích từ đợt $maDotE')"
+                            );
+                        }
+                    }
+                }
+            }
         }
         return true;
     }
@@ -162,6 +241,29 @@ class TaiXe {
              WHERE tx.nguoi_dung_id = $userId AND dvc.id = $dotId LIMIT 1"
         );
         return $res->num_rows > 0;
+    }
+
+    public function debugDriverOwnership(int $userId, int $dotId): array {
+        // Kiểm tra tài xế có tồn tại với userId này không
+        $rTx = $this->db->query("SELECT id, nguoi_dung_id FROM tai_xe WHERE nguoi_dung_id = $userId LIMIT 1");
+        $taiXe = $rTx ? $rTx->fetch_assoc() : null;
+
+        // Kiểm tra đợt vận chuyển có tồn tại không
+        $rDvc = $this->db->query("SELECT id, tai_xe_id, ma_dot_van_chuyen FROM dot_van_chuyen WHERE id = $dotId LIMIT 1");
+        $dvc = $rDvc ? $rDvc->fetch_assoc() : null;
+
+        // Kiểm tra ownership
+        $owns = false;
+        if ($taiXe && $dvc && (int)$dvc['tai_xe_id'] === (int)$taiXe['id']) {
+            $owns = true;
+        }
+
+        return [
+            'owns'        => $owns,
+            'user_id'     => $userId,
+            'tai_xe'      => $taiXe,
+            'dot_vc'      => $dvc,
+        ];
     }
 
     // ── Shipper (giao_hang_tan_noi) ────────────────────────────────
@@ -220,6 +322,15 @@ class TaiXe {
         }
 
         $this->db->query("UPDATE don_hang SET trang_thai_don_hang = '$ttDon' WHERE id = $dhId");
+
+        // Cập nhật trạng thái thanh toán trong hoa_don khi giao hàng thành công
+        if ($trangThai === 'thanh_cong') {
+            $this->db->query(
+                "UPDATE hoa_don SET trang_thai_thanh_toan = 'da_thanh_toan'
+                 WHERE don_hang_id = $dhId AND trang_thai_thanh_toan = 'chua_thanh_toan'"
+            );
+        }
+
         $hoTenE = $this->db->real_escape_string($hoTen);
         $ghiChuE= $this->db->real_escape_string($ghiChu);
         $this->db->query(
@@ -288,7 +399,7 @@ class TaiXe {
                  FROM don_hang dh
                  LEFT JOIN khach_hang kg ON dh.khach_hang_gui_id  = kg.id
                  LEFT JOIN khach_hang kn ON dh.khach_hang_nhan_id = kn.id
-                 WHERE dh.trang_thai_don_hang IN ('cho_tiep_nhan','da_nhap_kho')";
+                 WHERE dh.trang_thai_don_hang = 'da_nhap_kho'";
 
         // Ưu tiên match theo tên chi nhánh đích; fallback LIKE dia_chi_den
         $matched = [];
@@ -327,7 +438,7 @@ class TaiXe {
 
     public function getDispatcherStats(): array {
         return [
-            'pending_orders'     => (int)$this->db->query("SELECT COUNT(*) as c FROM don_hang WHERE trang_thai_don_hang IN ('cho_tiep_nhan','da_nhap_kho')")->fetch_assoc()['c'],
+            'pending_orders'     => (int)$this->db->query("SELECT COUNT(*) as c FROM don_hang WHERE trang_thai_don_hang = 'da_nhap_kho'")->fetch_assoc()['c'],
             'today_shipments'    => (int)$this->db->query("SELECT COUNT(*) as c FROM dot_van_chuyen WHERE DATE(ngay_gio_khoi_hanh) = CURDATE()")->fetch_assoc()['c'],
             'available_drivers'  => (int)$this->db->query("SELECT COUNT(*) as c FROM tai_xe")->fetch_assoc()['c'],
             'available_vehicles' => (int)$this->db->query("SELECT COUNT(*) as c FROM xe_van_tai WHERE trang_thai_hoat_dong = 1")->fetch_assoc()['c'],
@@ -384,13 +495,26 @@ class TaiXe {
         return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
     }
 
-    /** Phân công danh sách đơn hàng cho shipper */
+    /** Phân công danh sách đơn hàng cho shipper.
+     *  Chỉ cho phép phân công đơn có trạng thái 'da_den_kho_dich' (hàng đã đến kho đích).
+     */
     public function assignOrdersToShipper(int $nghId, array $donHangIds): array {
         $assigned = 0;
         $skipped  = 0;
         foreach ($donHangIds as $dhId) {
             $dhId = (int)$dhId;
             if ($dhId <= 0) continue;
+
+            // Kiểm tra trạng thái đơn hàng: chỉ phân công khi hàng đã đến kho đích
+            $statusCheck = $this->db->query(
+                "SELECT trang_thai_don_hang FROM don_hang WHERE id = $dhId LIMIT 1"
+            );
+            if (!$statusCheck) { $skipped++; continue; }
+            $donRow = $statusCheck->fetch_assoc();
+            if (!$donRow || $donRow['trang_thai_don_hang'] !== 'da_den_kho_dich') {
+                $skipped++;
+                continue;
+            }
 
             // Kiểm tra xem đã có bản ghi chưa
             $check = $this->db->query(
@@ -424,7 +548,10 @@ class TaiXe {
         return true;
     }
 
-    /** Lấy đơn hàng cần phân công (da_nhap_kho hoặc dang_van_chuyen, chưa có shipper) */
+    /** Lấy đơn hàng cần phân công shipper.
+     *  Chỉ lấy đơn 'da_den_kho_dich' (đã đến kho đích — tài xế xác nhận "Hoàn thành").
+     *  Đơn 'dang_van_chuyen' không được phân công vì hàng chưa đến nơi.
+     */
     public function getOrdersForShipperAssignment(): array {
         $res = $this->db->query(
             "SELECT dh.id, dh.ma_don_hang AS ma_don,
@@ -444,7 +571,7 @@ class TaiXe {
              FROM don_hang dh
              LEFT JOIN khach_hang kg ON dh.khach_hang_gui_id  = kg.id
              LEFT JOIN khach_hang kn ON dh.khach_hang_nhan_id = kn.id
-             WHERE dh.trang_thai_don_hang IN ('da_nhap_kho','dang_van_chuyen')
+             WHERE dh.trang_thai_don_hang = 'da_den_kho_dich'
              ORDER BY dh.ngay_tao ASC"
         );
         return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
@@ -495,6 +622,154 @@ class TaiXe {
         }
     }
 
+    // ── GPS / Hành trình xe ─────────────────────────────────────────
+
+    /**
+     * Lấy vị trí GPS mới nhất của tất cả tài xế + shipper đang hoạt động.
+     * Trả về: [{loai_hanh_trinh, ma_dinh_danh_luong, vi_do, kinh_do, thoi_gian, ten_nguoi, bien_so, ma_dot}]
+     */
+    public function getActiveLocations(): array {
+        // Vị trí chi nhánh
+        $branches = $this->db->query(
+            "SELECT id, ten_chi_nhanh, dia_chi,
+                    toa_do_vi_do   AS vi_do,
+                    toa_do_kinh_do AS kinh_do
+             FROM chi_nhanh
+             WHERE toa_do_vi_do IS NOT NULL AND toa_do_kinh_do IS NOT NULL"
+        );
+        $branchData = $branches ? $branches->fetch_all(MYSQLI_ASSOC) : [];
+
+        // Vị trí tài xế (trung chuyển kho) — lấy bản ghi mới nhất của mỗi dot_van_chuyen đang di chuyển
+        $driverLocs = $this->db->query(
+            "SELECT h.loai_hanh_trinh,
+                    h.ma_dinh_danh_luong,
+                    h.vi_do_hien_tai   AS vi_do,
+                    h.kinh_do_hien_tai AS kinh_do,
+                    h.thoi_gian_ghi_nhan,
+                    nd.ho_ten           AS ten_nguoi,
+                    xvt.bien_so_xe      AS bien_so,
+                    dvc.ma_dot_van_chuyen AS ma_dot,
+                    dvc.trang_thai_dot_van_chuyen AS trang_thai_dot
+             FROM hanh_trinh_xe h
+             JOIN dot_van_chuyen dvc ON h.ma_dinh_danh_luong = dvc.id
+             JOIN tai_xe tx          ON dvc.tai_xe_id = tx.id
+             JOIN nguoi_dung nd      ON tx.nguoi_dung_id = nd.id
+             LEFT JOIN xe_van_tai xvt ON dvc.xe_van_tai_id = xvt.id
+             WHERE h.loai_hanh_trinh = 'trung_chuyen_kho'
+               AND dvc.trang_thai_dot_van_chuyen = 'dang_di_chuyen'
+               AND h.id = (
+                   SELECT MAX(h2.id)
+                   FROM hanh_trinh_xe h2
+                   WHERE h2.loai_hanh_trinh = 'trung_chuyen_kho'
+                     AND h2.ma_dinh_danh_luong = h.ma_dinh_danh_luong
+               )"
+        );
+        $driverData = $driverLocs ? $driverLocs->fetch_all(MYSQLI_ASSOC) : [];
+
+        // Vị trí shipper (giao hàng tận nơi) — lấy bản ghi mới nhất của mỗi shipper đang giao
+        $shipperLocs = $this->db->query(
+            "SELECT h.loai_hanh_trinh,
+                    h.ma_dinh_danh_luong,
+                    h.vi_do_hien_tai   AS vi_do,
+                    h.kinh_do_hien_tai AS kinh_do,
+                    h.thoi_gian_ghi_nhan,
+                    nd.ho_ten           AS ten_nguoi,
+                    NULL                AS bien_so,
+                    NULL                AS ma_dot,
+                    'dang_giao'         AS trang_thai_dot
+             FROM hanh_trinh_xe h
+             JOIN nguoi_giao_hang ngh ON h.ma_dinh_danh_luong = ngh.id
+             JOIN nguoi_dung nd       ON ngh.nguoi_dung_id = nd.id
+             WHERE h.loai_hanh_trinh = 'shipper_giao_khach'
+               AND h.id = (
+                   SELECT MAX(h2.id)
+                   FROM hanh_trinh_xe h2
+                   WHERE h2.loai_hanh_trinh = 'shipper_giao_khach'
+                     AND h2.ma_dinh_danh_luong = h.ma_dinh_danh_luong
+               )
+               AND EXISTS (
+                   SELECT 1 FROM giao_hang_tan_noi g
+                   WHERE g.nguoi_giao_hang_id = ngh.id
+                     AND g.trang_thai_giao_hang IN ('cho_lay_hang','dang_giao')
+               )"
+        );
+        $shipperData = $shipperLocs ? $shipperLocs->fetch_all(MYSQLI_ASSOC) : [];
+
+        return [
+            'branches' => $branchData,
+            'drivers'  => $driverData,
+            'shippers' => $shipperData,
+        ];
+    }
+
+    /**
+     * Cập nhật hoặc chèn mới vị trí GPS vào bảng hanh_trinh_xe.
+     * Chiến lược: INSERT mới mỗi lần (time-series log) nhưng giới hạn 1 bản ghi mỗi 30 giây / người.
+     */
+    public function upsertLocation(string $loai, int $maDinhDanh, float $viDo, float $kinhDo): bool {
+        // Kiểm tra có bản ghi trong 30 giây vừa rồi không (tránh spam)
+        $stmt = $this->db->prepare(
+            "SELECT id FROM hanh_trinh_xe
+             WHERE loai_hanh_trinh = ? AND ma_dinh_danh_luong = ?
+               AND thoi_gian_ghi_nhan >= NOW() - INTERVAL 25 SECOND
+             LIMIT 1"
+        );
+        $stmt->bind_param("si", $loai, $maDinhDanh);
+        $stmt->execute();
+        $existing = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if ($existing) {
+            // Cập nhật bản ghi vừa tạo thay vì insert mới
+            $upd = $this->db->prepare(
+                "UPDATE hanh_trinh_xe
+                 SET vi_do_hien_tai = ?, kinh_do_hien_tai = ?, thoi_gian_ghi_nhan = NOW()
+                 WHERE id = ?"
+            );
+            $upd->bind_param("ddi", $viDo, $kinhDo, $existing['id']);
+            return $upd->execute();
+        }
+
+        $ins = $this->db->prepare(
+            "INSERT INTO hanh_trinh_xe (loai_hanh_trinh, ma_dinh_danh_luong, vi_do_hien_tai, kinh_do_hien_tai)
+             VALUES (?, ?, ?, ?)"
+        );
+        $ins->bind_param("sidd", $loai, $maDinhDanh, $viDo, $kinhDo);
+        return $ins->execute();
+    }
+
+    /**
+     * Lấy dot_van_chuyen đang di chuyển của tài xế (để push GPS)
+     */
+    public function getActiveShipmentIdForDriver(int $userId): ?int {
+        $res = $this->db->query(
+            "SELECT dvc.id
+             FROM dot_van_chuyen dvc
+             JOIN tai_xe tx ON dvc.tai_xe_id = tx.id
+             WHERE tx.nguoi_dung_id = $userId
+               AND dvc.trang_thai_dot_van_chuyen = 'dang_di_chuyen'
+             ORDER BY dvc.ngay_gio_khoi_hanh DESC
+             LIMIT 1"
+        );
+        if ($res && $row = $res->fetch_assoc()) {
+            return (int)$row['id'];
+        }
+        return null;
+    }
+
+    /**
+     * Lấy nguoi_giao_hang.id của shipper (để push GPS)
+     */
+    public function getShipperNghId(int $userId): ?int {
+        $res = $this->db->query(
+            "SELECT id FROM nguoi_giao_hang WHERE nguoi_dung_id = $userId LIMIT 1"
+        );
+        if ($res && $row = $res->fetch_assoc()) {
+            return (int)$row['id'];
+        }
+        return null;
+    }
+
     public function reportIncident(int $userId, string $maDon, string $maDot, string $loaiSuCo, string $moTa, string $viTri, string $mucDo): bool {
         $donHangId = null;
         if (!empty($maDon)) {
@@ -530,6 +805,36 @@ class TaiXe {
             $mappedType = 'hang_hu_hong';
         }
 
+        if ($loaiSuCo === 'xe_hong') {
+            $xeId = null;
+            if ($dotId !== null) {
+                $stmtXe = $this->db->prepare("SELECT xe_van_tai_id FROM dot_van_chuyen WHERE id = ? LIMIT 1");
+                $stmtXe->bind_param("i", $dotId);
+                $stmtXe->execute();
+                $resXe = $stmtXe->get_result()->fetch_assoc();
+                if ($resXe && !empty($resXe['xe_van_tai_id'])) {
+                    $xeId = (int)$resXe['xe_van_tai_id'];
+                }
+                $stmtXe->close();
+            }
+            if ($xeId === null) {
+                $stmtXe = $this->db->prepare("SELECT xe_van_tai_id FROM tai_xe WHERE nguoi_dung_id = ? LIMIT 1");
+                $stmtXe->bind_param("i", $userId);
+                $stmtXe->execute();
+                $resXe = $stmtXe->get_result()->fetch_assoc();
+                if ($resXe && !empty($resXe['xe_van_tai_id'])) {
+                    $xeId = (int)$resXe['xe_van_tai_id'];
+                }
+                $stmtXe->close();
+            }
+            if ($xeId !== null) {
+                $stmtUp = $this->db->prepare("UPDATE xe_van_tai SET trang_thai_hoat_dong = 0 WHERE id = ?");
+                $stmtUp->bind_param("i", $xeId);
+                $stmtUp->execute();
+                $stmtUp->close();
+            }
+        }
+
         // Build details
         $fullDetails = "";
         if (!empty($viTri)) {
@@ -552,5 +857,100 @@ class TaiXe {
         );
         $stmt->bind_param("iiiss", $donHangId, $dotId, $userId, $mappedType, $fullDetails);
         return $stmt->execute();
+    }
+
+    // ── GPS Tracking dành cho Khách hàng ──────────────────────────
+
+    /**
+     * Lấy vị trí GPS hiện tại của shipper hoặc tài xế đang vận chuyển đơn hàng.
+     * Dùng cho khách hàng tra cứu vị trí theo mã đơn hàng.
+     *
+     * Trả về: null nếu đơn không đang vận chuyển / không có GPS
+     * Hoặc: { loai, vi_do, kinh_do, ten_nguoi, bien_so, trang_thai, thoi_gian }
+     */
+    public function getLocationForOrder(string $maDon): ?array {
+        // Lấy thông tin đơn hàng
+        $stmt = $this->db->prepare(
+            "SELECT dh.id, dh.trang_thai_don_hang
+             FROM don_hang dh
+             WHERE dh.ma_don_hang = ?
+             LIMIT 1"
+        );
+        $stmt->bind_param("s", $maDon);
+        $stmt->execute();
+        $don = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+
+        if (!$don) return null;
+
+        $dhId    = (int)$don['id'];
+        $ttDon   = $don['trang_thai_don_hang'];
+        $result  = null;
+
+        // ── Trường hợp 1: Đơn đang vận chuyển bằng xe (tài xế) ──────────
+        // trang_thai = 'dang_van_chuyen'
+        if ($ttDon === 'dang_van_chuyen') {
+            $sql = "SELECT h.vi_do_hien_tai   AS vi_do,
+                           h.kinh_do_hien_tai AS kinh_do,
+                           h.thoi_gian_ghi_nhan,
+                           nd.ho_ten           AS ten_nguoi,
+                           xvt.bien_so_xe      AS bien_so,
+                           dvc.ma_dot_van_chuyen AS ma_dot,
+                           'tai_xe'            AS loai
+                    FROM chi_tiet_dot_van_chuyen cdvc
+                    JOIN dot_van_chuyen dvc ON cdvc.dot_van_chuyen_id = dvc.id
+                    JOIN tai_xe tx          ON dvc.tai_xe_id = tx.id
+                    JOIN nguoi_dung nd      ON tx.nguoi_dung_id = nd.id
+                    LEFT JOIN xe_van_tai xvt ON dvc.xe_van_tai_id = xvt.id
+                    JOIN hanh_trinh_xe h    ON (
+                        h.loai_hanh_trinh = 'trung_chuyen_kho'
+                        AND h.ma_dinh_danh_luong = dvc.id
+                        AND h.id = (
+                            SELECT MAX(h2.id) FROM hanh_trinh_xe h2
+                            WHERE h2.loai_hanh_trinh = 'trung_chuyen_kho'
+                              AND h2.ma_dinh_danh_luong = dvc.id
+                        )
+                    )
+                    WHERE cdvc.don_hang_id = $dhId
+                      AND dvc.trang_thai_dot_van_chuyen = 'dang_di_chuyen'
+                    LIMIT 1";
+            $res = $this->db->query($sql);
+            if ($res && $row = $res->fetch_assoc()) {
+                $result = $row;
+            }
+        }
+
+        // ── Trường hợp 2: Đơn đang giao tận nơi (shipper) ───────────────
+        // trang_thai = 'dang_giao_hang'
+        if ($ttDon === 'dang_giao_hang' || ($ttDon === 'da_den_kho_dich' && !$result)) {
+            $sql = "SELECT h.vi_do_hien_tai   AS vi_do,
+                           h.kinh_do_hien_tai AS kinh_do,
+                           h.thoi_gian_ghi_nhan,
+                           nd.ho_ten           AS ten_nguoi,
+                           NULL                AS bien_so,
+                           NULL                AS ma_dot,
+                           'shipper'           AS loai
+                    FROM giao_hang_tan_noi ghtn
+                    JOIN nguoi_giao_hang ngh ON ghtn.nguoi_giao_hang_id = ngh.id
+                    JOIN nguoi_dung nd       ON ngh.nguoi_dung_id = nd.id
+                    JOIN hanh_trinh_xe h     ON (
+                        h.loai_hanh_trinh = 'shipper_giao_khach'
+                        AND h.ma_dinh_danh_luong = ngh.id
+                        AND h.id = (
+                            SELECT MAX(h2.id) FROM hanh_trinh_xe h2
+                            WHERE h2.loai_hanh_trinh = 'shipper_giao_khach'
+                              AND h2.ma_dinh_danh_luong = ngh.id
+                        )
+                    )
+                    WHERE ghtn.don_hang_id = $dhId
+                      AND ghtn.trang_thai_giao_hang IN ('cho_lay_hang','dang_giao')
+                    LIMIT 1";
+            $res = $this->db->query($sql);
+            if ($res && $row = $res->fetch_assoc()) {
+                $result = $row;
+            }
+        }
+
+        return $result;
     }
 }

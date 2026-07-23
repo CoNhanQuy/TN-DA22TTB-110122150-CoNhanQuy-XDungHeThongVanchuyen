@@ -3,8 +3,8 @@ require_once __DIR__ . '/../../backend/config/cauhinh.php';
 require_once __DIR__ . '/../../backend/core/helpers.php';
 requireRole('admin');
 $pageTitle = 'Quản trị hệ thống';
-$moduleCSS = '/DATN/frontend/assets/css/quantri.css';
-$moduleJS  = '/DATN/frontend/assets/js/quantri.js';
+$moduleCSS = APP_BASE_URL . '/frontend/assets/css/quantri.css';
+$moduleJS  = APP_BASE_URL . '/frontend/assets/js/quantri.js';
 include __DIR__ . '/../includes/header.php';
 $adminName = htmlspecialchars($_SESSION['ho_ten'] ?? 'Admin');
 $adminPhone = htmlspecialchars($_SESSION['so_dien_thoai'] ?? '');
@@ -12,6 +12,8 @@ $adminRole  = htmlspecialchars($_SESSION['role'] ?? 'admin');
 $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8'), 'UTF-8');
 ?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
 <div class="container">
 
@@ -62,10 +64,13 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
             <li><a href="#" class="nav-link" data-tab="reports">
                 <span class="nav-icon">📈</span> Báo cáo
             </a></li>
+            <li><a href="#" class="nav-link" data-tab="gpsmap" id="navGpsMap">
+                <span class="nav-icon">🗺️</span> Bản đồ GPS
+            </a></li>
         </ul>
 
         <div class="sidebar-footer">
-            <a href="/DATN/backend/api/auth/logout.php">
+            <a href="<?php echo APP_BASE_URL; ?>/backend/api/auth/logout.php">
                 <span class="nav-icon">🚪</span> Đăng xuất
             </a>
         </div>
@@ -154,7 +159,18 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                 <div class="content-card">
                     <div class="content-card-header">
                         <h2>👥 Danh sách người dùng</h2>
-                        <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Thêm mới</button>
+                        <div style="display: flex; gap: 0.75rem; align-items: center;">
+                            <select id="userRoleFilter" onchange="filterUserByRole()" style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem; font-weight: 500; outline: none; background-color: #fff; cursor: pointer;">
+                                <option value="">Tất cả vai trò</option>
+                                <option value="admin">Admin</option>
+                                <option value="nhan_vien_tiep_nhan">Tiếp nhận</option>
+                                <option value="nhan_vien_dieu_phoi">Điều phối</option>
+                                <option value="tai_xe">Tài xế</option>
+                                <option value="shipper">Người giao hàng</option>
+                                <option value="khach_hang">Khách hàng</option>
+                            </select>
+                            <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Thêm mới</button>
+                        </div>
                     </div>
                     <div class="content-card-table table-wrap">
                         <table>
@@ -218,6 +234,17 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                 <div class="content-card">
                     <div class="content-card-header">
                         <h2>📦 Quản lý đơn hàng</h2>
+                        <div style="display: flex; gap: 0.75rem; align-items: center;">
+                            <select id="orderStatusFilter" onchange="filterOrderByStatus()" style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid var(--border); font-size: 0.85rem; font-weight: 500; outline: none; background-color: #fff; cursor: pointer;">
+                                <option value="">Tất cả trạng thái</option>
+                                <option value="cho_tiep_nhan">Chờ tiếp nhận</option>
+                                <option value="da_nhap_kho">Đã nhập kho</option>
+                                <option value="dang_van_chuyen">Đang vận chuyển</option>
+                                <option value="da_den_kho_dich">Đã đến kho</option>
+                                <option value="dang_giao_hang">Đang giao hàng</option>
+                                <option value="hoan_tat">Giao hàng thành công</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="content-card-table table-wrap">
                         <table>
@@ -237,8 +264,8 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                     </div>
                     <div class="content-card-table table-wrap">
                         <table>
-                            <thead><tr><th>Từ KL (kg)</th><th>Đến KL (kg)</th><th>Phí cơ bản</th><th>Phí/km</th><th>Áp dụng từ</th><th>Áp dụng đến</th><th>Hành động</th></tr></thead>
-                            <tbody id="pricingList"><tr class="empty-row"><td colspan="7">Đang tải...</td></tr></tbody>
+                            <thead><tr><th>Từ KL (kg)</th><th>Đến KL (kg)</th><th>Phí cơ bản</th><th>Phí/km</th><th>Hành động</th></tr></thead>
+                            <tbody id="pricingList"><tr class="empty-row"><td colspan="5">Đang tải...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -306,7 +333,7 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                 </div>
 
                 <!-- ── CHARTS ── -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="reports-grid" style="margin-bottom: 1.5rem;">
                     <div class="content-card" style="padding: 1.25rem; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
                         <div class="content-card-header" style="border-bottom: none; padding: 0 0 1rem 0; margin-bottom: 0.5rem;">
                             <h2 style="font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem;">📈 Xu hướng Đơn hàng & Doanh thu</h2>
@@ -326,7 +353,7 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                 </div>
 
                 <!-- ── TABLES ── -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="reports-grid">
                     <div class="content-card">
                         <div class="content-card-header">
                             <h2>📅 Thống kê chi tiết theo thời gian</h2>
@@ -365,6 +392,75 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                                     <tr class="empty-row"><td colspan="4">Đang tải dữ liệu...</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── GPS MAP TAB ── -->
+            <div id="gpsmap" class="tab-content">
+                <div class="gps-map-layout">
+                    <!-- Bản đồ -->
+                    <div class="gps-map-panel">
+                        <div class="gps-map-header">
+                            <div>
+                                <h2 class="gps-map-title">🗺️ Bản đồ GPS thời gian thực</h2>
+                                <p class="gps-map-sub">Hiển thị vị trí tài xế và shipper đang hoạt động. Tự động cập nhật mỗi 30 giây.</p>
+                            </div>
+                            <div class="gps-map-actions">
+                                <span id="gpsMapStatus" class="gps-status-badge">
+                                    <span class="gps-pulse"></span> Đang kết nối...
+                                </span>
+                                <button class="btn btn-primary btn-sm" onclick="refreshGpsMap()" id="btnRefreshGps">
+                                    🔄 Làm mới
+                                </button>
+                            </div>
+                        </div>
+                        <div id="gpsLeafletMap" class="gps-leaflet-container"></div>
+                        <div class="gps-map-legend">
+                            <div class="legend-item"><span class="legend-dot legend-driver"></span> Tài xế đang di chuyển</div>
+                            <div class="legend-item"><span class="legend-dot legend-shipper"></span> Shipper đang giao hàng</div>
+                            <div class="legend-item"><span class="legend-dot legend-branch"></span> Chi nhánh</div>
+                        </div>
+                    </div>
+
+                    <!-- Panel thông tin bên cạnh -->
+                    <div class="gps-info-panel">
+                        <div class="gps-summary-cards">
+                            <div class="gps-summary-card driver-card">
+                                <div class="gps-sum-icon">🚚</div>
+                                <div>
+                                    <div class="gps-sum-count" id="gpsDriverCount">0</div>
+                                    <div class="gps-sum-label">Tài xế đang chạy</div>
+                                </div>
+                            </div>
+                            <div class="gps-summary-card shipper-card">
+                                <div class="gps-sum-icon">🛵</div>
+                                <div>
+                                    <div class="gps-sum-count" id="gpsShipperCount">0</div>
+                                    <div class="gps-sum-label">Shipper đang giao</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách tài xế -->
+                        <div class="gps-list-section">
+                            <h3 class="gps-list-title">🚚 Tài xế</h3>
+                            <div id="gpsDriverList" class="gps-marker-list">
+                                <p class="gps-empty">Chưa có tài xế đang di chuyển</p>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách shipper -->
+                        <div class="gps-list-section">
+                            <h3 class="gps-list-title">🛵 Shipper</h3>
+                            <div id="gpsShipperList" class="gps-marker-list">
+                                <p class="gps-empty">Chưa có shipper đang giao hàng</p>
+                            </div>
+                        </div>
+
+                        <div class="gps-last-update">
+                            Cập nhật lúc: <span id="gpsLastUpdate">--</span>
                         </div>
                     </div>
                 </div>
@@ -527,10 +623,6 @@ $adminInitial = mb_strtoupper(mb_substr($_SESSION['ho_ten'] ?? 'A', 0, 1, 'UTF-8
                 <div class="form-row">
                     <div class="form-group"><label>Phí cơ bản (VNĐ)</label><input type="number" step="1" id="pricingBaseFee" required placeholder="0"></div>
                     <div class="form-group"><label>Phí/km (VNĐ)</label><input type="number" step="1" id="pricingPerKm" placeholder="0"></div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group"><label>Áp dụng từ</label><input type="date" id="pricingApplyFrom"></div>
-                    <div class="form-group"><label>Áp dụng đến</label><input type="date" id="pricingApplyTo"></div>
                 </div>
                 <div class="form-group"><label>Trạng thái</label>
                     <select id="pricingStatus">

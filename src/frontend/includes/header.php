@@ -1,17 +1,7 @@
 <?php
-// Đọc APP_BASE_URL từ .env để inject vào JS
+// Fallback: nếu không được định nghĩa trước (thường từ cauhinh.php)
 if (!defined('APP_BASE_URL')) {
-    $__envFile = dirname(__DIR__, 2) . '/.env';
-    $__appBase = '';
-    if (file_exists($__envFile)) {
-        foreach (file($__envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $__line) {
-            if (str_starts_with(trim($__line), '#') || !str_contains($__line, '=')) continue;
-            [$__k, $__v] = explode('=', $__line, 2);
-            if (trim($__k) === 'APP_BASE_URL') { $__appBase = trim($__v); break; }
-        }
-    }
-    // Fallback: nếu không set thì dùng /DATN (localhost)
-    define('APP_BASE_URL', $__appBase !== '' ? rtrim($__appBase, '/') : '/DATN');
+    define('APP_BASE_URL', '/DATN');
 }
 ?>
 <!DOCTYPE html>
@@ -23,7 +13,7 @@ if (!defined('APP_BASE_URL')) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/DATN/frontend/assets/css/styles.css?v=4">
+    <link rel="stylesheet" href="<?php echo APP_BASE_URL; ?>/frontend/assets/css/styles.css?v=4">
     <?php if (isset($moduleCSS)): ?>
     <link rel="stylesheet" href="<?php echo htmlspecialchars($moduleCSS); ?>?v=2">
     <?php endif; ?>
@@ -34,6 +24,9 @@ if (!defined('APP_BASE_URL')) {
     <script>
         // Base URL cho toàn bộ API calls — được inject từ PHP (đọc từ .env APP_BASE_URL)
         window.API_BASE = <?php echo json_encode(APP_BASE_URL); ?>;
+        window.getApiBase = function() {
+            return (typeof window.API_BASE === 'string') ? window.API_BASE : '';
+        };
     </script>
 </head>
 <body>

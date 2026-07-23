@@ -53,9 +53,18 @@ window.onclick = function(event) {
 function renderStatusBadge(status) {
     let cls = 'badge-pending';
     let text = mapStatusLabel(status);
-    if (status === 'dang_giao') cls = 'badge-on-route';
-    if (status === 'thanh_cong' || status === 'hoan_tat') cls = 'badge-delivered';
-    if (status === 'that_bai' || status === 'da_huy') cls = 'badge-returned';
+    
+    if (status === 'dang_giao' || status === 'dang_giao_hang') {
+        cls = 'badge-on-route';
+        text = 'Đang giao hàng';
+    } else if (status === 'thanh_cong' || status === 'hoan_tat') {
+        cls = 'badge-delivered';
+        text = 'Đã giao hàng';
+    } else if (status === 'that_bai' || status === 'da_nhap_kho' || status === 'da_huy') {
+        cls = 'badge-returned';
+        text = 'Trả lại';
+    }
+    
     return `<span class="status-badge ${cls}">${escapeHtml(text)}</span>`;
 }
 
@@ -82,7 +91,7 @@ function checkQueryParam() {
 
 async function loadAssignedOrders() {
     try {
-        const res = await apiFetch((window.API_BASE || '/DATN') + '/backend/api/index.php?action=driver_orders');
+        const res = await apiFetch(getApiBase() + '/backend/api/index.php?action=driver_orders');
         const data = await res.json();
         const tbody = document.getElementById('assignedOrdersList');
         
@@ -119,7 +128,7 @@ async function loadAssignedOrders() {
 
 async function loadDeliveryLog() {
     try {
-        const res = await apiFetch((window.API_BASE || '/DATN') + '/backend/api/index.php?action=driver_delivery_log');
+        const res = await apiFetch(getApiBase() + '/backend/api/index.php?action=driver_delivery_log');
         const data = await res.json();
         const tbody = document.getElementById('deliveryLogList');
         
@@ -184,7 +193,7 @@ document.getElementById('statusForm').addEventListener('submit', async function(
             photoData.append('photo', photoInput.files[0]);
             
             try {
-                const uploadRes = await apiFetch((window.API_BASE || '/DATN') + '/backend/api/index.php?action=driver_upload_photo', {
+                const uploadRes = await apiFetch(getApiBase() + '/backend/api/index.php?action=driver_upload_photo', {
                     method: 'POST',
                     body: photoData
                 });
@@ -212,7 +221,7 @@ document.getElementById('statusForm').addEventListener('submit', async function(
     formData.append('ghi_chu', note);
 
     try {
-        const res = await apiFetch((window.API_BASE || '/DATN') + '/backend/api/index.php?action=driver_update_status', {
+        const res = await apiFetch(getApiBase() + '/backend/api/index.php?action=driver_update_status', {
             method: 'POST',
             body: formData
         });
@@ -276,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fd.append('muc_do',     document.getElementById('incidentSeverity').value);
 
         try {
-            const res  = await apiFetch((window.API_BASE || '/DATN') + '/backend/api/index.php?action=driver_report_incident', {
+            const res  = await apiFetch(getApiBase() + '/backend/api/index.php?action=driver_report_incident', {
                 method: 'POST',
                 body: fd
             });
@@ -301,3 +310,101 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// GPS TRACKING — Shipper
+// ═══════════════════════════════════════════════════════════════
+
+let _shipperGpsWatchId = null;
+let _shipperGpsOn      = false;
+let _shipperLastPushMs = 0;
+const SHIPPER_GPS_INTERVAL = 30000; // 30 giây
+
+function toggleShipperGps() {
+    if (_shipperGpsOn) {
+        _stopShipperGps();
+    } else {
+        _startShipperGps();
+    }
+}
+
+function _startShipperGps() {
+    if (!navigator.geolocation) {
+        _setShipperGpsBar('❌ Trình duyệt không hỗ trợ GPS', 'error');
+        return;
+    }
+    _setShipperGpsBar('⏳ Đang lấy vị trí...', 'loading');
+    const btn = document.getElementById('btnToggleGps');
+    if (btn) { btn.textContent = '⏹ Tắt GPS'; btn.classList.add('btn-danger'); }
+    _shipperGpsOn = true;
+    _shipperGpsWatchId = navigator.geolocation.watchPosition(
+        _onShipperPosition,
+        _onShipperGpsError,
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+}
+
+function _stopShipperGps() {
+    if (_shipperGpsWatchId !== null) {
+        navigator.geolocation.clearWatch(_shipperGpsWatchId);
+        _shipperGpsWatchId = null;
+    }
+    _shipperGpsOn = false;
+    const btn = document.getElementById('btnToggleGps');
+    if (btn) { btn.textContent = '📍 Bật GPS'; btn.classList.remove('btn-danger'); }
+    _setShipperGpsBar('GPS đã tắt', 'idle');
+    const coordEl = document.getElementById('gpsCoords');
+    if (coordEl) coordEl.textContent = '';
+}
+
+async function _onShipperPosition(pos) {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const acc = Math.round(pos.coords.accuracy);
+
+    const coordEl = document.getElementById('gpsCoords');
+    if (coordEl) coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)} (±${acc}m)`;
+
+    const now = Date.now();
+    if (now - _shipperLastPushMs < SHIPPER_GPS_INTERVAL) return;
+    _shipperLastPushMs = now;
+
+    try {
+        const fd = new FormData();
+        fd.append('vi_do',   lat);
+        fd.append('kinh_do', lng);
+        const res  = await apiFetch(`${getApiBase()}/backend/api/index.php?action=gps_update`, {
+            method: 'POST', body: fd
+        });
+        const data = await res.json();
+        if (data.success) {
+            _setShipperGpsBar(`✅ Đã gửi vị trí — ${new Date().toLocaleTimeString('vi-VN')}`, 'active');
+        } else {
+            _setShipperGpsBar(`⚠️ ${data.message || 'Lỗi gửi vị trí'}`, 'warn');
+        }
+    } catch (err) {
+        _setShipperGpsBar('❌ Lỗi kết nối khi gửi vị trí', 'error');
+        console.error('GPS push error:', err);
+    }
+}
+
+function _onShipperGpsError(err) {
+    const msgs = {
+        1: 'Bạn đã từ chối quyền truy cập vị trí',
+        2: 'Không thể xác định vị trí',
+        3: 'Hết thời gian lấy vị trí',
+    };
+    _setShipperGpsBar('❌ ' + (msgs[err.code] || 'Lỗi GPS'), 'error');
+}
+
+function _setShipperGpsBar(msg, state) {
+    const el  = document.getElementById('gpsBarStatus');
+    const bar = document.getElementById('gpsTrackingBar');
+    if (el)  el.textContent = msg;
+    if (bar) {
+        bar.className = 'gps-tracking-bar';
+        if (state === 'active') bar.classList.add('gps-bar-active');
+        if (state === 'error')  bar.classList.add('gps-bar-error');
+        if (state === 'warn')   bar.classList.add('gps-bar-warn');
+    }
+}

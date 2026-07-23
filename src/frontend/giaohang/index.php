@@ -3,8 +3,8 @@ require_once __DIR__ . '/../../backend/config/cauhinh.php';
 require_once __DIR__ . '/../../backend/core/helpers.php';
 requireRole('shipper');
 $pageTitle = 'Người giao hàng';
-$moduleCSS = '/DATN/frontend/assets/css/giaohang.css';
-$moduleJS  = '/DATN/frontend/assets/js/giaohang.js';
+$moduleCSS = APP_BASE_URL . '/frontend/assets/css/giaohang.css';
+$moduleJS  = APP_BASE_URL . '/frontend/assets/js/giaohang.js';
 include __DIR__ . '/../includes/header.php';
 ?>
 <div class="container">
@@ -20,7 +20,22 @@ include __DIR__ . '/../includes/header.php';
                 <?php endif; ?>
             </div>
         </div>
-        <a href="/DATN/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
+        <a href="<?php echo APP_BASE_URL; ?>/backend/api/auth/logout.php" class="logout-btn">🚪 Đăng xuất</a>
+    </div>
+
+    <!-- GPS Tracking Bar -->
+    <div class="gps-tracking-bar" id="gpsTrackingBar">
+        <div class="gps-bar-left">
+            <span class="gps-bar-icon">📡</span>
+            <div>
+                <div class="gps-bar-title">GPS Tracking</div>
+                <div class="gps-bar-status" id="gpsBarStatus">Chưa kích hoạt — nhấn "Bật GPS" để gửi vị trí lên máy chủ</div>
+            </div>
+        </div>
+        <div class="gps-bar-right">
+            <span class="gps-coords" id="gpsCoords"></span>
+            <button class="btn btn-primary btn-small" id="btnToggleGps" onclick="toggleShipperGps()">📍 Bật GPS</button>
+        </div>
     </div>
 
     <!-- Tra cứu đơn hàng nhanh -->
@@ -146,14 +161,18 @@ include __DIR__ . '/../includes/header.php';
                 <label style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 600;">Trạng thái mới</label>
                 <select id="updateStatus" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 5px;" required onchange="toggleReceiverField()">
                     <option value="">-- Chọn trạng thái --</option>
-                    <option value="dang_giao">Đang vận chuyển</option>
-                    <option value="thanh_cong">Đã giao hàng (Thành công)</option>
-                    <option value="that_bai">Trả lại (Không giao được)</option>
+                    <option value="dang_giao">Đang giao hàng</option>
+                    <option value="thanh_cong">Đã giao hàng</option>
+                    <option value="that_bai">Trả lại</option>
                 </select>
             </div>
             <div style="margin-bottom: 1rem; display: none;" id="receiverFieldGroup">
-                <label style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 600;">Tên người nhận thực tế <span style="color:red;">*</span></label>
-                <input type="text" id="actualReceiver" placeholder="Nhập tên người trực tiếp nhận hàng" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 5px;">
+                <label style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 600;">Người nhận thực tế <span style="color:red;">*</span></label>
+                <select id="actualReceiver" style="width: 100%; padding: 0.8rem; border: 2px solid #e0e0e0; border-radius: 5px;">
+                    <option value="">-- Chọn người nhận thực tế --</option>
+                    <option value="Chính chủ">Chính chủ</option>
+                    <option value="Người nhận hộ">Người nhận hộ</option>
+                </select>
             </div>
             <div style="margin-bottom: 1rem; display: none;" id="photoFieldGroup">
                 <label style="display: block; margin-bottom: 0.5rem; color: #333; font-weight: 600;">Ảnh minh chứng giao hàng <span style="color:red;">*</span></label>

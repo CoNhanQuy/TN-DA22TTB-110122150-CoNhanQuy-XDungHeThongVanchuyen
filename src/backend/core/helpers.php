@@ -57,7 +57,7 @@ function hasRole(string $requiredRole): bool {
 function requireLogin(): void {
     if (!isLoggedIn()) {
         if (isApiRequest()) apiAuthFail(401, 'Bạn chưa đăng nhập');
-        header('Location: /DATN/frontend/trangchu/index.php');
+        header('Location: ' . APP_BASE_URL . '/index.php');
         exit();
     }
 }
@@ -69,7 +69,7 @@ function requireRole(string $role): void {
     requireLogin();
     if (!hasRole($role)) {
         if (isApiRequest()) apiAuthFail(403, 'Bạn không có quyền truy cập');
-        header('Location: /DATN/frontend/trangchu/index.php');
+        header('Location: ' . APP_BASE_URL . '/index.php');
         exit();
     }
 }
@@ -120,7 +120,7 @@ function maskPhone(string $phone): string {
  * Đăng nhập — dùng cho trang web (procedural).
  * Trả về vai_tro nếu thành công, false nếu thất bại.
  */
-function login(string $username, string $password): string|false {
+function login(string $username, string $password) {
     global $conn;
 
     $stmt = $conn->prepare(
@@ -162,7 +162,7 @@ function login(string $username, string $password): string|false {
  */
 function logout(): void {
     session_destroy();
-    header('Location: /DATN/frontend/trangchu/index.php');
+    header('Location: ' . APP_BASE_URL . '/index.php');
     exit();
 }
 

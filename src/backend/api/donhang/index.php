@@ -3,7 +3,7 @@
  * Route group: /api/donhang/
  * Tất cả action liên quan đến đơn hàng — gọi DonHangController
  */
-require_once __DIR__ . '/../../controllers/DonHangController.php';
+require_once __DIR__ . '/../../controllers/donhangcontroller.php';
 
 $ctrl   = new DonHangController($conn);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -113,7 +113,7 @@ switch ($action) {
     case 'add_orders_to_shipment':
         if ($method === 'POST') {
             // Delegated to taixe module — forward $conn trực tiếp
-            require_once __DIR__ . '/../../controllers/GiaoHangController.php';
+            require_once __DIR__ . '/../../controllers/giaohangcontroller.php';
             $dotId      = (int)($_POST['dot_id'] ?? 0);
             $donHangIds = isset($_POST['don_hang_ids']) ? (array)$_POST['don_hang_ids'] : [];
             if (!$dotId || empty($donHangIds)) response(false, null, 'Thiếu thông tin bắt buộc');

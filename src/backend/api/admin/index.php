@@ -3,7 +3,7 @@
  * Route group: /api/admin/
  * Quản trị hệ thống — gọi AdminController (wrapper của Admin model)
  */
-require_once __DIR__ . '/../../models/Admin.php';
+require_once __DIR__ . '/../../models/admin.php';
 
 $admin  = new Admin($conn);
 $method = $_SERVER['REQUEST_METHOD'];
@@ -47,6 +47,14 @@ switch ($action) {
             $op = $_POST['op'] ?? '';
             if ($op === 'delete') {
                 $admin->deleteVehicle((int)($_POST['id'] ?? 0));
+                response(true);
+            } elseif ($op === 'update') {
+                $admin->updateVehicle(
+                    (int)($_POST['id'] ?? 0),
+                    $_POST['bien_so'] ?? '',
+                    (float)($_POST['trong_tai_kg'] ?? 0),
+                    (int)($_POST['trang_thai'] ?? 1)
+                );
                 response(true);
             } else {
                 $id = $admin->createVehicle(
